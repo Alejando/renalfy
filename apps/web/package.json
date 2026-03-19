@@ -4,17 +4,22 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 4000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@tailwindcss/postcss": "^4.2.2",
     "next": "16.2.0",
+    "postcss": "^8.5.8",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.2.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

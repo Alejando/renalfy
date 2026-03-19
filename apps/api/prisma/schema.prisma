@@ -1,0 +1,578 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// PLATFORM (no tenant)
+// ─────────────────────────────────────────────
+
+model Tenant {
+  id        String       @id @default(uuid())
+  slug      String       @unique
+  name      String
+  status    TenantStatus @default(TRIAL)
+  plan      String       @default("starter")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  settings  TenantSettings?
+  locations Location[]
+  users     User[]
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+model TenantSettings {
+  id             String  @id @default(uuid())
+  tenantId       String  @unique
+  logoUrl        String?
+  coverUrl       String?
+  primaryColor   String?
+  secondaryColor String?
+  tagline        String?
+  description    String?
+  phone          String?
+  email          String?
+  address        String?
+  customDomain   String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// USERS & LOCATIONS
+// ─────────────────────────────────────────────
+
+model User {
+  id         String     @id @default(uuid())
+  tenantId   String
+  locationId String?
+  name       String
+  email      String
+  password   String
+  role       UserRole
+  phone      String?
+  avatarUrl  String?
+  status     UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+
+  @@unique([tenantId, email])
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  address   String?
+  phone     String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  users  User[]
+}
+
+// ─────────────────────────────────────────────
+// MODULE 1 — CLINIC
+// ─────────────────────────────────────────────
+
+model Patient {
+  id         String        @id @default(uuid())
+  tenantId   String
+  locationId String
+  name       String
+  address    String?
+  phone      String?
+  mobile     String?
+  birthDate  DateTime?
+  notes      String?
+  status     PatientStatus @default(ACTIVE)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+model ServiceType {
+  id       String            @id @default(uuid())
+  tenantId String
+  name     String
+  status   ServiceTypeStatus @default(ACTIVE)
+}
+
+enum ServiceTypeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Receipt {
+  id            String        @id @default(uuid())
+  tenantId      String
+  locationId    String
+  patientId     String
+  userId        String
+  serviceTypeId String?
+  folio         String
+  date          DateTime
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentType   PaymentType
+  status        ReceiptStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  appointments Appointment[]
+}
+
+enum ReceiptStatus {
+  ACTIVE
+  FINISHED
+  SETTLED
+  CANCELLED
+}
+
+enum PaymentType {
+  CASH
+  CREDIT
+  BENEFIT
+  INSURANCE
+  TRANSFER
+}
+
+model Appointment {
+  id            String            @id @default(uuid())
+  tenantId      String
+  locationId    String
+  patientId     String
+  receiptId     String?
+  userId        String
+  serviceTypeId String?
+  scheduledAt   DateTime
+  startedAt     DateTime?
+  endedAt       DateTime?
+  status        AppointmentStatus @default(SCHEDULED)
+  notes         String?
+  clinicalData  Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  receipt      Receipt?      @relation(fields: [receiptId], references: [id])
+  measurements Measurement[]
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Measurement {
+  id            String   @id @default(uuid())
+  tenantId      String
+  appointmentId String
+  recordedAt    DateTime
+  data          Json
+  notes         String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model ClinicalTemplate {
+  id            String   @id @default(uuid())
+  tenantId      String
+  serviceTypeId String   @unique
+  fields        Json
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// MODULE 2 — PLANS
+// ─────────────────────────────────────────────
+
+model Company {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  taxId         String?
+  phone         String?
+  email         String?
+  address       String?
+  contactPerson String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Plan {
+  id              String     @id @default(uuid())
+  tenantId        String
+  locationId      String
+  patientId       String
+  companyId       String?
+  serviceTypeId   String?
+  userId          String
+  startDate       DateTime
+  plannedSessions Int
+  usedSessions    Int        @default(0)
+  amount          Decimal    @db.Decimal(10, 2)
+  status          PlanStatus @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  EXHAUSTED
+}
+
+// ─────────────────────────────────────────────
+// MODULE 3 — INVENTORY
+// ─────────────────────────────────────────────
+
+model Product {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  brand         String?
+  category      String?
+  description   String?
+  purchasePrice Decimal  @db.Decimal(10, 2)
+  salePrice     Decimal  @db.Decimal(10, 2)
+  packageQty    Int      @default(1)
+  globalAlert   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  locationStocks LocationStock[]
+  supplierLinks  SupplierProduct[]
+}
+
+model LocationStock {
+  id         String @id @default(uuid())
+  tenantId   String
+  locationId String
+  productId  String
+  quantity   Int    @default(0)
+  minStock   Int    @default(0)
+  alertLevel Int    @default(0)
+  packageQty Int?
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([locationId, productId])
+}
+
+model Supplier {
+  id        String         @id @default(uuid())
+  tenantId  String
+  name      String
+  initials  String?
+  contact   String?
+  phone     String?
+  email     String?
+  status    SupplierStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  products SupplierProduct[]
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model SupplierProduct {
+  id         String   @id @default(uuid())
+  tenantId   String
+  productId  String
+  supplierId String
+  price      Decimal  @db.Decimal(10, 2)
+  updatedAt  DateTime @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([productId, supplierId])
+}
+
+model PurchaseOrder {
+  id         String              @id @default(uuid())
+  tenantId   String
+  locationId String
+  userId     String
+  date       DateTime
+  status     PurchaseOrderStatus @default(DRAFT)
+  notes      String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  items PurchaseOrderItem[]
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrderItem {
+  id              String @id @default(uuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+}
+
+model Purchase {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String
+  supplierId String
+  date       DateTime
+  amount     Decimal  @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id         String  @id @default(uuid())
+  purchaseId String
+  productId  String
+  quantity   Int
+  price      Decimal @db.Decimal(10, 2)
+  tax        Decimal @db.Decimal(10, 2) @default(0)
+  packageQty Int?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id])
+}
+
+model InventoryMovement {
+  id         String       @id @default(uuid())
+  tenantId   String
+  locationId String
+  userId     String
+  date       DateTime
+  type       MovementType
+  notes      String?
+  createdAt  DateTime     @default(now())
+
+  items InventoryMovementItem[]
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+model InventoryMovementItem {
+  id                  String @id @default(uuid())
+  inventoryMovementId String
+  productId           String
+  quantity            Int
+
+  inventoryMovement InventoryMovement @relation(fields: [inventoryMovementId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// MODULE 4 — CASH
+// ─────────────────────────────────────────────
+
+model Sale {
+  id            String        @id @default(uuid())
+  tenantId      String
+  locationId    String
+  userId        String
+  cashCloseId   String?
+  date          DateTime
+  customer      String?
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  status        SaleStatus    @default(PENDING)
+  settledAt     DateTime?
+  isClosed      Boolean       @default(false)
+  closedAt      DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items     SaleItem[]
+  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT
+  TRANSFER
+  OTHER
+}
+
+enum SaleStatus {
+  PENDING
+  SETTLED
+  CANCELLED
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  sale Sale @relation(fields: [saleId], references: [id])
+}
+
+model Income {
+  id          String    @id @default(uuid())
+  tenantId    String
+  locationId  String
+  userId      String
+  cashCloseId String?
+  concept     String
+  date        DateTime
+  amount      Decimal   @db.Decimal(10, 2)
+  isClosed    Boolean   @default(false)
+  closedAt    DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  tenantId    String
+  locationId  String
+  userId      String
+  cashCloseId String?
+  concept     String
+  date        DateTime
+  amount      Decimal   @db.Decimal(10, 2)
+  isClosed    Boolean   @default(false)
+  closedAt    DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
+}
+
+model CashClose {
+  id           String   @id @default(uuid())
+  tenantId     String
+  locationId   String
+  userId       String
+  periodStart  DateTime
+  periodEnd    DateTime
+  closedAt     DateTime
+  cashTotal    Decimal  @db.Decimal(10, 2)
+  creditTotal  Decimal  @db.Decimal(10, 2)
+  incomeTotal  Decimal  @db.Decimal(10, 2)
+  expenseTotal Decimal  @db.Decimal(10, 2)
+  netTotal     Decimal  @db.Decimal(10, 2)
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  sales    Sale[]
+  incomes  Income[]
+  expenses Expense[]
+}
+
+// ─────────────────────────────────────────────
+// COMPLIANCE — LFPDPPP / NOM-004 / NOM-024
+// ─────────────────────────────────────────────
+
+// Registro de consentimiento explícito del paciente (LFPDPPP Art. 8)
+// Datos de salud son "datos personales sensibles" — requieren consentimiento expreso.
+model PatientConsent {
+  id           String      @id @default(uuid())
+  tenantId     String
+  patientId    String
+  type         ConsentType
+  version      String      // versión del aviso de privacidad firmado
+  grantedAt    DateTime    @default(now())
+  revokedAt    DateTime?
+  ipAddress    String?
+  signatureUrl String?     // URL de la firma electrónica en almacenamiento
+
+  @@index([tenantId, patientId])
+}
+
+enum ConsentType {
+  PRIVACY_NOTICE  // Aviso de privacidad LFPDPPP
+  TREATMENT       // Consentimiento para tratamiento médico
+  DATA_SHARING    // Compartir datos con aseguradoras / empresas
+}
+
+// Bitácora de auditoría — INMUTABLE por diseño y por política RLS
+// Cumple NOM-004 (autenticidad e integridad del expediente electrónico)
+// Solo permite INSERT. UPDATE y DELETE bloqueados en RLS y en la app.
+model AuditLog {
+  id         String      @id @default(uuid())
+  tenantId   String?     // null para eventos de plataforma (login global, etc.)
+  userId     String?     // null para acciones del sistema
+  action     AuditAction
+  resource   String      // nombre del modelo: "Patient", "Appointment", etc.
+  resourceId String?     // id del registro afectado
+  oldValues  Json?       // snapshot antes del cambio (UPDATE/DELETE)
+  newValues  Json?       // snapshot después del cambio (CREATE/UPDATE)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, resource, resourceId])
+  @@index([userId, createdAt])
+}
+
+enum AuditAction {
+  CREATE
+  READ     // solo para accesos a datos sensibles (ej: ver expediente completo)
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  EXPORT
+  CONSENT_GRANTED
+  CONSENT_REVOKED
+}
