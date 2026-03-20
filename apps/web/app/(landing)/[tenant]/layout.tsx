@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { getPublicTenant } from '../../../lib/api.js';
+import { getPublicTenant } from '../../../lib/api';
 
 interface Props {
   children: ReactNode;

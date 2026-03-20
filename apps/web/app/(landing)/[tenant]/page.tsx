@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPublicTenant } from '../../../lib/api.js';
+import { getPublicTenant } from '../../../lib/api';
 
 interface Props {
   params: Promise<{ tenant: string }>;

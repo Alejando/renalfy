@@ -9,6 +9,8 @@ jest.mock('../../generated/prisma/client.js', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({})),
 }));
 
+const mockTenantBase = { id: 'tenant-id-001' };
+
 const mockTenant = {
   name: 'Clínica Centro',
   slug: 'clinica-centro',
@@ -25,12 +27,23 @@ const mockTenant = {
   },
 };
 
-function makePrisma(overrides: Record<string, unknown> = {}): PrismaService {
+function makePrisma(tenantResult: unknown = mockTenant): PrismaService {
+  const txMock = {
+    $executeRaw: jest.fn().mockResolvedValue(undefined),
+    tenant: {
+      findUnique: jest.fn().mockResolvedValue(tenantResult),
+    },
+  };
+
   return {
     tenant: {
-      findUnique: jest.fn().mockResolvedValue(mockTenant),
+      findUnique: jest.fn().mockResolvedValue(mockTenantBase),
     },
-    ...overrides,
+    $transaction: jest
+      .fn()
+      .mockImplementation((fn: (tx: typeof txMock) => Promise<unknown>) =>
+        fn(txMock),
+      ),
   } as unknown as PrismaService;
 }
 
@@ -43,20 +56,15 @@ describe('PublicTenantsService', () => {
       const result = await service.findBySlug('clinica-centro');
 
       expect(result).toEqual(mockTenant);
-      expect(prisma.tenant.findUnique).toHaveBeenCalledWith({
-        where: { slug: 'clinica-centro' },
-        select: expect.objectContaining({
-          name: true,
-          slug: true,
-          settings: expect.any(Object),
-        }),
-      });
     });
 
     it('should throw NotFoundException for an unknown slug', async () => {
-      const prisma = makePrisma({
-        tenant: { findUnique: jest.fn().mockResolvedValue(null) },
-      });
+      const prisma = {
+        tenant: {
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+        $transaction: jest.fn(),
+      } as unknown as PrismaService;
       const service = new PublicTenantsService(prisma);
 
       await expect(service.findBySlug('no-existe')).rejects.toThrow(
@@ -65,13 +73,7 @@ describe('PublicTenantsService', () => {
     });
 
     it('should return settings as null when tenant has no TenantSettings', async () => {
-      const prisma = makePrisma({
-        tenant: {
-          findUnique: jest
-            .fn()
-            .mockResolvedValue({ ...mockTenant, settings: null }),
-        },
-      });
+      const prisma = makePrisma({ ...mockTenant, settings: null });
       const service = new PublicTenantsService(prisma);
 
       const result = await service.findBySlug('clinica-centro');

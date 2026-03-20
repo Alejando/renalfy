@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import TenantLandingPage from './page.js';
+import TenantLandingPage from './page';
 
 vi.mock('../../../lib/api.js', () => ({
   getPublicTenant: vi.fn(),

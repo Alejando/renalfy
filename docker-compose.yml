@@ -4,7 +4,7 @@ services:
     container_name: renalfy-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: renalfy
       POSTGRES_PASSWORD: renalfy_dev

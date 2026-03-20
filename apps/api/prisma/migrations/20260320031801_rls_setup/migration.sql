@@ -23,8 +23,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Helper: devuelve el tenant_id de la sesión actual o NULL si no está seteado
-CREATE OR REPLACE FUNCTION current_tenant_id() RETURNS uuid AS $$
-  SELECT NULLIF(current_setting('app.current_tenant_id', true), '')::uuid;
+-- Retorna TEXT para coincidir con las columnas tenantId generadas por Prisma (TEXT)
+CREATE OR REPLACE FUNCTION current_tenant_id() RETURNS text AS $$
+  SELECT NULLIF(current_setting('app.current_tenant_id', true), '');
 $$ LANGUAGE sql STABLE;
 
 -- ─── Tablas con tenantId directo ─────────────────────────────────────────────
