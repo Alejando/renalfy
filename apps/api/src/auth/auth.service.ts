@@ -33,7 +33,12 @@ export class AuthService {
       throw new ForbiddenException('Cuenta suspendida');
     }
 
-    return this.generateTokens(user.id, user.tenantId, user.role);
+    return this.generateTokens(
+      user.id,
+      user.tenantId,
+      user.role,
+      user.locationId,
+    );
   }
 
   async refresh(userId: string, _refreshToken: string) {
@@ -41,7 +46,12 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
 
     // In a production app store the hashed refresh token in DB and validate here
-    return this.generateTokens(user.id, user.tenantId, user.role);
+    return this.generateTokens(
+      user.id,
+      user.tenantId,
+      user.role,
+      user.locationId,
+    );
   }
 
   async me(userId: string) {
@@ -81,8 +91,13 @@ export class AuthService {
     });
   }
 
-  private generateTokens(userId: string, tenantId: string, role: string) {
-    const payload = { sub: userId, tenantId, role };
+  private generateTokens(
+    userId: string,
+    tenantId: string,
+    role: string,
+    locationId: string | null,
+  ) {
+    const payload = { sub: userId, tenantId, role, locationId };
 
     const accessToken = this.jwt.sign(payload, {
       secret: this.config.get<string>('JWT_SECRET'),
