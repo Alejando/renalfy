@@ -5,3 +5,5 @@ export * from './users.schemas.js';
 export * from './tenant-settings.schemas.js';
 export * from './patients.schemas.js';
 export * from './service-types.schemas.js';
+export * from './appointments.schemas.js';
+export * from './clinical-templates.schemas.js';
