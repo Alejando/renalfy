@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const TENANT_PUBLIC_SELECT = {
+  id: true,
   name: true,
   slug: true,
   settings: {

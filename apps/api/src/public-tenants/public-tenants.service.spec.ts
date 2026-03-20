@@ -12,6 +12,7 @@ jest.mock('../../generated/prisma/client.js', () => ({
 const mockTenantBase = { id: 'tenant-id-001' };
 
 const mockTenant = {
+  id: 'b1d2e3f4-0000-0000-0000-000000000001',
   name: 'Clínica Centro',
   slug: 'clinica-centro',
   settings: {

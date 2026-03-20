@@ -3,11 +3,11 @@ import { getPublicTenant } from '../../../lib/api';
 
 interface Props {
   children: ReactNode;
-  params: Promise<{ tenant: string }>;
+  params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ tenant: string }> }) {
-  const { tenant: slug } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const tenant = await getPublicTenant(slug);
 
   if (!tenant) {
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ tenant: s
 }
 
 export default async function TenantLayout({ children, params }: Props) {
-  const { tenant: slug } = await params;
+  const { slug } = await params;
   const tenant = await getPublicTenant(slug);
 
   const primaryColor = tenant?.settings?.primaryColor ?? '#0ea5e9';

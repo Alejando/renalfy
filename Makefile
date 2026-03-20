@@ -1,5 +1,11 @@
 .PHONY: help dev db db-stop db-reset migrate seed api web test lint types types-build
 
+SHELL := /bin/bash
+NVM_SH := $(HOME)/.nvm/nvm.sh
+
+# Activa la versión de Node definida en .nvmrc antes de ejecutar cualquier comando
+node_use = . $(NVM_SH) && nvm use --silent
+
 # Default target
 help:
 	@echo ""
@@ -51,42 +57,42 @@ db-reset:
 
 types-build:
 	@echo "→ Compilando @repo/types..."
-	pnpm --filter @repo/types build
+	$(node_use) && pnpm --filter @repo/types build
 
 migrate:
 	@echo "→ Aplicando migraciones..."
-	cd apps/api && npx prisma migrate dev
+	$(node_use) && cd apps/api && npx prisma migrate dev
 
 seed:
 	@echo "→ Insertando datos de desarrollo..."
-	cd apps/api && npx tsx prisma/seed.ts
+	$(node_use) && cd apps/api && npx tsx prisma/seed.ts
 
 studio:
-	cd apps/api && npx prisma studio
+	$(node_use) && cd apps/api && npx prisma studio
 
 # ─── Servidores ───────────────────────────────────────────────────────────────
 
 api:
 	@echo "→ Iniciando API en :4001..."
-	pnpm --filter api dev
+	$(node_use) && pnpm --filter api dev
 
 web:
 	@echo "→ Iniciando Web en :4000..."
-	NEXT_PUBLIC_DEV_TENANT_SLUG=clinica-demo pnpm --filter web dev
+	$(node_use) && pnpm --filter web dev
 
 # ─── Calidad ──────────────────────────────────────────────────────────────────
 
 test:
 	@echo "→ Tests backend..."
-	pnpm --filter api test
+	$(node_use) && pnpm --filter api test
 	@echo "→ Tests frontend..."
-	pnpm --filter web test
+	$(node_use) && pnpm --filter web test
 
 lint:
-	pnpm lint
+	$(node_use) && pnpm lint
 
 types:
-	pnpm check-types
+	$(node_use) && pnpm check-types
 
 check: lint types test
 	@echo "✓ Todos los gates pasaron"

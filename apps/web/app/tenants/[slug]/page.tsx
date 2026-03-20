@@ -4,11 +4,11 @@ import { notFound } from 'next/navigation';
 import { getPublicTenant } from '../../../lib/api';
 
 interface Props {
-  params: Promise<{ tenant: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export default async function TenantLandingPage({ params }: Props) {
-  const { tenant: slug } = await params;
+  const { slug } = await params;
   const tenant = await getPublicTenant(slug);
 
   if (!tenant) {
@@ -21,12 +21,18 @@ export default async function TenantLandingPage({ params }: Props) {
     <main className="min-h-screen flex flex-col">
       <header className="px-6 py-4 flex items-center justify-between border-b">
         {settings?.logoUrl ? (
-          <Image src={settings.logoUrl} alt={`${name} logo`} width={160} height={40} className="h-10 w-auto object-contain" />
+          <Image
+            src={settings.logoUrl}
+            alt={`${name} logo`}
+            width={160}
+            height={40}
+            className="h-10 w-auto object-contain"
+          />
         ) : (
           <span className="text-xl font-semibold text-[var(--color-primary)]">{name}</span>
         )}
         <Link
-          href={`/${slug}/login`}
+          href="/login"
           className="px-4 py-2 rounded-md text-sm font-medium text-white bg-[var(--color-primary)] hover:opacity-90 transition-opacity"
         >
           Iniciar sesión
@@ -53,7 +59,7 @@ export default async function TenantLandingPage({ params }: Props) {
       )}
 
       <footer className="px-6 py-4 border-t text-xs text-gray-400 flex justify-center">
-        <Link href={`/${slug}/privacidad`} className="hover:underline">
+        <Link href="/privacidad" className="hover:underline">
           Aviso de privacidad
         </Link>
       </footer>

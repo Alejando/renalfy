@@ -32,6 +32,7 @@ export const TenantSettingsSchema = z.object({
 });
 
 export const PublicTenantResponseSchema = z.object({
+  id: z.string().uuid(),
   name: z.string(),
   slug: z.string(),
   settings: TenantSettingsSchema.nullable(),
