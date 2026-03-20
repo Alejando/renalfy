@@ -66,6 +66,12 @@ export const PaymentMethodSchema = z.enum([
 
 export const SaleStatusSchema = z.enum(['PENDING', 'SETTLED', 'CANCELLED']);
 
+export const ConsentTypeSchema = z.enum([
+  'PRIVACY_NOTICE',
+  'TREATMENT',
+  'DATA_SHARING',
+]);
+
 // Inferred types
 export type UserRole = z.infer<typeof UserRoleSchema>;
 export type UserStatus = z.infer<typeof UserStatusSchema>;
@@ -81,3 +87,4 @@ export type PurchaseOrderStatus = z.infer<typeof PurchaseOrderStatusSchema>;
 export type MovementType = z.infer<typeof MovementTypeSchema>;
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 export type SaleStatus = z.infer<typeof SaleStatusSchema>;
+export type ConsentType = z.infer<typeof ConsentTypeSchema>;

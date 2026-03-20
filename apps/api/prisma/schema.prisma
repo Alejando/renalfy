@@ -126,10 +126,14 @@ enum PatientStatus {
 }
 
 model ServiceType {
-  id       String            @id @default(uuid())
-  tenantId String
-  name     String
-  status   ServiceTypeStatus @default(ACTIVE)
+  id          String            @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  price       Decimal?          @db.Decimal(10, 2)
+  status      ServiceTypeStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 enum ServiceTypeStatus {

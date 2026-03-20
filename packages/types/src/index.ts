@@ -3,3 +3,5 @@ export * from './auth.schemas.js';
 export * from './locations.schemas.js';
 export * from './users.schemas.js';
 export * from './tenant-settings.schemas.js';
+export * from './patients.schemas.js';
+export * from './service-types.schemas.js';

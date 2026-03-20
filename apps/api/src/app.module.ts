@@ -8,6 +8,8 @@ import { LocationsModule } from './locations/locations.module.js';
 import { UsersModule } from './users/users.module.js';
 import { PublicTenantsModule } from './public-tenants/public-tenants.module.js';
 import { TenantSettingsModule } from './tenant-settings/tenant-settings.module.js';
+import { ServiceTypesModule } from './service-types/service-types.module.js';
+import { PatientsModule } from './patients/patients.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -22,6 +24,8 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     UsersModule,
     PublicTenantsModule,
     TenantSettingsModule,
+    ServiceTypesModule,
+    PatientsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
