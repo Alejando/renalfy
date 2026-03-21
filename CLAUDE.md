@@ -870,3 +870,12 @@ import { PrismaService } from '../prisma/prisma.service';
 | 16 | Notificaciones in-app | Pendiente |
 | 17 | Script de migración SUTR → Renalfy | Pendiente |
 | 18 | QA, ajustes UX, deploy producción | Pendiente |
+
+## Active Technologies
+- TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (006-appointments-dynamic-form)
+- PostgreSQL 16 con RLS — modelos `Appointment`, `Measurement`, `ClinicalTemplate` ya existen (006-appointments-dynamic-form)
+- TypeScript / Node.js 25 + NestJS (latest), Prisma 7, nestjs-zod, `@repo/types` (Zod schemas) (007-receipts-folio-states)
+- PostgreSQL 16 with RLS — `Receipt`, `Plan`, `ReceiptFolioCounter` tables (007-receipts-folio-states)
+
+## Recent Changes
+- 006-appointments-dynamic-form: Added TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types`
