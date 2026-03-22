@@ -148,6 +148,7 @@ model Receipt {
   patientId     String
   userId        String
   serviceTypeId String?
+  planId        String?
   folio         String
   date          DateTime
   amount        Decimal       @db.Decimal(10, 2)
@@ -157,6 +158,7 @@ model Receipt {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  plan         Plan?         @relation(fields: [planId], references: [id])
   appointments Appointment[]
 }
 
@@ -256,6 +258,18 @@ model Plan {
   notes           String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  receipts Receipt[]
+}
+
+model ReceiptFolioCounter {
+  id           String @id @default(uuid())
+  tenantId     String
+  locationId   String
+  year         Int
+  lastSequence Int    @default(0)
+
+  @@unique([tenantId, locationId, year])
 }
 
 enum PlanStatus {

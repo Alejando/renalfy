@@ -12,9 +12,11 @@ import { ServiceTypesModule } from './service-types/service-types.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { AppointmentsModule } from './appointments/appointments.module.js';
 import { ClinicalTemplatesModule } from './clinical-templates/clinical-templates.module.js';
+import { ReceiptsModule } from './receipts/receipts.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
@@ -30,8 +32,11 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     PatientsModule,
     AppointmentsModule,
     ClinicalTemplatesModule,
+    ReceiptsModule,
   ],
   providers: [
+    // JwtAuthGuard runs first (global) so req.user is set before RolesGuard
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     // El orden importa: TenantInterceptor primero (setea RLS), luego AuditInterceptor
     { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },

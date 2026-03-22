@@ -851,22 +851,42 @@ import { PrismaService } from '../prisma/prisma.service';
 
 ## Sprints (referencia)
 
-| Sprint | Entregable | Estado |
-|---|---|---|
-| 1 | Setup monorepo, Docker, CI/CD, ESLint/Prettier | ✅ Listo |
-| 2 | Auth JWT + refresh, modelo base de tenants | ✅ Listo |
-| 3 | Locations, Users, Roles, guardias de acceso | Siguiente |
-| 4 | Landing page dinámica por tenant (branding) | Pendiente |
-| 5 | Módulo 1 — Pacientes + Tipos de servicio | Pendiente |
-| 6 | Módulo 1 — Citas/Sesiones con formulario dinámico | Pendiente |
-| 7 | Módulo 1 — Recibos (folio + flujo de estados) | Pendiente |
-| 8 | Módulo 2 — Planes + Empresas | Pendiente |
-| 9 | Módulo 3 — Productos + Stock por sucursal | Pendiente |
-| 10 | Módulo 3 — Proveedores + Órdenes de compra | Pendiente |
-| 11 | Módulo 3 — Compras + Movimientos de inventario | Pendiente |
-| 12 | Módulo 4 — Ventas | Pendiente |
-| 13 | Módulo 4 — Cortes de caja + Ingresos/Egresos | Pendiente |
-| 14-15 | Reportes PDF y Excel | Pendiente |
-| 16 | Notificaciones in-app | Pendiente |
-| 17 | Script de migración SUTR → Renalfy | Pendiente |
-| 18 | QA, ajustes UX, deploy producción | Pendiente |
+| Sprint | Entregable | Tipo | Estado |
+|---|---|---|---|
+| 1 | Setup monorepo, Docker, CI/CD, ESLint/Prettier | Infra | ✅ Listo |
+| 2 | Auth JWT + refresh, modelo base de tenants | Back | ✅ Listo |
+| 3 | Locations, Users, Roles, guardias de acceso | Back | ✅ Listo |
+| 4 | Landing page dinámica por tenant (branding) | Front | ✅ Listo |
+| 5 | Módulo 1 — Pacientes + Tipos de servicio | Back | ✅ Listo |
+| 6 | Módulo 1 — Citas/Sesiones con formulario dinámico | Back | ✅ Listo |
+| 7 | Módulo 1 — Recibos (folio + flujo de estados) | Back | ✅ Listo |
+| 8 | UI — Auth (login, logout, cambio de contraseña) | Front | Siguiente |
+| 9 | UI — Settings: Locations + Users | Front | Pendiente |
+| 10 | UI — Módulo 1: Pacientes + Tipos de servicio | Front | Pendiente |
+| 11 | UI — Módulo 1: Citas + formulario clínico dinámico | Front | Pendiente |
+| 12 | UI — Módulo 1: Recibos | Front | Pendiente |
+| 13 | Back — Módulo 2: Planes + Empresas | Back | Pendiente |
+| 14 | UI — Módulo 2: Planes + Empresas | Front | Pendiente |
+| 15 | Back — Módulo 3: Productos + Stock por sucursal | Back | Pendiente |
+| 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente |
+| 17 | Back — Módulo 3: Proveedores + Órdenes de compra | Back | Pendiente |
+| 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | Pendiente |
+| 19 | Back — Módulo 3: Compras + Movimientos de inventario | Back | Pendiente |
+| 20 | UI — Módulo 3: Compras + Movimientos | Front | Pendiente |
+| 21 | Back — Módulo 4: Ventas | Back | Pendiente |
+| 22 | UI — Módulo 4: Ventas | Front | Pendiente |
+| 23 | Back — Módulo 4: Cortes de caja + Ingresos/Egresos | Back | Pendiente |
+| 24 | UI — Módulo 4: Cortes de caja + Ingresos/Egresos | Front | Pendiente |
+| 25-26 | Reportes PDF y Excel (back + front) | Full | Pendiente |
+| 27 | Notificaciones in-app | Full | Pendiente |
+| 28 | Script de migración SUTR → Renalfy | Back | Pendiente |
+| 29 | QA, ajustes UX, deploy producción | QA | Pendiente |
+
+## Active Technologies
+- TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (006-appointments-dynamic-form)
+- PostgreSQL 16 con RLS — modelos `Appointment`, `Measurement`, `ClinicalTemplate` ya existen (006-appointments-dynamic-form)
+- TypeScript / Node.js 25 + NestJS (latest), Prisma 7, nestjs-zod, `@repo/types` (Zod schemas) (007-receipts-folio-states)
+- PostgreSQL 16 with RLS — `Receipt`, `Plan`, `ReceiptFolioCounter` tables (007-receipts-folio-states)
+
+## Recent Changes
+- 006-appointments-dynamic-form: Added TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types`
