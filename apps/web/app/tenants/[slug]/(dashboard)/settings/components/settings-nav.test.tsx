@@ -52,4 +52,17 @@ describe('SettingsNav', () => {
     const inactiveLink = screen.getByText('Usuarios').closest('a');
     expect(inactiveLink).not.toHaveClass('text-primary');
   });
+
+  it('renders "Tipos de servicio" nav item', () => {
+    vi.mocked(usePathname).mockReturnValue('/tenants/demo/settings/locations');
+    render(<SettingsNav />);
+    expect(screen.getByText('Tipos de servicio')).toBeInTheDocument();
+  });
+
+  it('marks service-types route as active when on service-types', () => {
+    vi.mocked(usePathname).mockReturnValue('/tenants/demo/settings/service-types');
+    render(<SettingsNav />);
+    const activeLink = screen.getByText('Tipos de servicio').closest('a');
+    expect(activeLink).toHaveClass('text-primary');
+  });
 });

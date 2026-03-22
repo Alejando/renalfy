@@ -45,6 +45,14 @@ export const PatientResponseSchema = z.object({
   notes: z.string().nullable(),
   status: PatientStatusSchema,
   hasConsent: z.boolean(),
+  locationName: z.string(),
+  consent: z
+    .object({
+      type: ConsentTypeSchema,
+      version: z.string(),
+      signedAt: z.coerce.date(),
+    })
+    .nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

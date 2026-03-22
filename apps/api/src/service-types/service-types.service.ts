@@ -3,6 +3,7 @@ import type {
   CreateServiceTypeDto,
   UpdateServiceTypeDto,
   ServiceTypeResponse,
+  ServiceTypeQuery,
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -38,9 +39,16 @@ export class ServiceTypesService {
     return mapServiceType(serviceType as PrismaServiceType);
   }
 
-  async findAll(tenantId: string): Promise<ServiceTypeResponse[]> {
+  async findAll(
+    tenantId: string,
+    query: ServiceTypeQuery,
+  ): Promise<ServiceTypeResponse[]> {
+    const includeAll = query.include === 'all';
     const results = await this.prisma.serviceType.findMany({
-      where: { tenantId, status: 'ACTIVE' },
+      where: {
+        tenantId,
+        ...(includeAll ? {} : { status: 'ACTIVE' as const }),
+      },
       orderBy: { name: 'asc' },
     });
     return (results as PrismaServiceType[]).map(mapServiceType);

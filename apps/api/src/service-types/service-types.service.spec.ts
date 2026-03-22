@@ -84,10 +84,22 @@ describe('ServiceTypesService', () => {
       const prisma = makePrisma();
       const service = new ServiceTypesService(prisma);
 
-      await service.findAll(TENANT_ID);
+      await service.findAll(TENANT_ID, {});
 
       expect(prisma.serviceType.findMany).toHaveBeenCalledWith({
         where: { tenantId: TENANT_ID, status: 'ACTIVE' },
+        orderBy: { name: 'asc' },
+      });
+    });
+
+    it('should return all service types including INACTIVE when include=all', async () => {
+      const prisma = makePrisma();
+      const service = new ServiceTypesService(prisma);
+
+      await service.findAll(TENANT_ID, { include: 'all' });
+
+      expect(prisma.serviceType.findMany).toHaveBeenCalledWith({
+        where: { tenantId: TENANT_ID },
         orderBy: { name: 'asc' },
       });
     });
@@ -96,7 +108,7 @@ describe('ServiceTypesService', () => {
       const prisma = makePrisma();
       const service = new ServiceTypesService(prisma);
 
-      const results = await service.findAll(TENANT_ID);
+      const results = await service.findAll(TENANT_ID, {});
 
       expect(results[0]).toMatchObject({ price: 1500 });
     });
@@ -132,6 +144,18 @@ describe('ServiceTypesService', () => {
       await expect(
         service.update(SERVICE_TYPE_ID, { name: 'X' }, OTHER_TENANT_ID),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should reactivate an INACTIVE service type when status ACTIVE is passed', async () => {
+      const prisma = makePrisma();
+      const service = new ServiceTypesService(prisma);
+
+      await service.update(SERVICE_TYPE_ID, { status: 'ACTIVE' }, TENANT_ID);
+
+      expect(prisma.serviceType.update).toHaveBeenCalledWith({
+        where: { id: SERVICE_TYPE_ID, tenantId: TENANT_ID },
+        data: { status: 'ACTIVE' },
+      });
     });
   });
 

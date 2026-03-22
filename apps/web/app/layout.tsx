@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Inter, Manrope } from 'next/font/google';
+import { Inter, Manrope, Geist } from 'next/font/google';
 import './globals.css';
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -33,7 +36,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
+    <html lang="es" className={cn("font-sans", geist.variable)}>
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${manrope.variable}`}>
         {children}
       </body>

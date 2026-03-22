@@ -12,6 +12,14 @@ import type {
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+type ConsentType = 'PRIVACY_NOTICE' | 'TREATMENT' | 'DATA_SHARING';
+
+type PrismaConsent = {
+  type: ConsentType;
+  version: string;
+  grantedAt: Date;
+};
+
 type PrismaPatient = {
   id: string;
   tenantId: string;
@@ -25,7 +33,42 @@ type PrismaPatient = {
   status: 'ACTIVE' | 'INACTIVE' | 'DELETED';
   createdAt: Date;
   updatedAt: Date;
+  location?: { name: string };
+  patientConsents?: PrismaConsent[];
 };
+
+function mapConsent(consent: PrismaConsent | null): PatientResponse['consent'] {
+  if (!consent) return null;
+  return {
+    type: consent.type,
+    version: consent.version,
+    signedAt: consent.grantedAt,
+  };
+}
+
+function buildPatientResponse(
+  patient: PrismaPatient,
+  hasConsent: boolean,
+  consent: PrismaConsent | null,
+): PatientResponse {
+  return {
+    id: patient.id,
+    tenantId: patient.tenantId,
+    locationId: patient.locationId,
+    name: patient.name,
+    birthDate: patient.birthDate,
+    phone: patient.phone,
+    mobile: patient.mobile,
+    address: patient.address,
+    notes: patient.notes,
+    status: patient.status,
+    createdAt: patient.createdAt,
+    updatedAt: patient.updatedAt,
+    hasConsent,
+    locationName: patient.location?.name ?? '',
+    consent: mapConsent(consent),
+  };
+}
 
 @Injectable()
 export class PatientsService {
@@ -61,7 +104,7 @@ export class PatientsService {
       return created;
     });
 
-    return { ...(patient as PrismaPatient), hasConsent: true };
+    return buildPatientResponse(patient as PrismaPatient, true, null);
   }
 
   async findAll(
@@ -89,6 +132,7 @@ export class PatientsService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { location: { select: { name: true } } },
       }),
       this.prisma.patient.count({ where }),
     ]);
@@ -105,10 +149,9 @@ export class PatientsService {
       (consents as { patientId: string }[]).map((c) => c.patientId),
     );
 
-    const data = (patients as PrismaPatient[]).map((p) => ({
-      ...p,
-      hasConsent: consentSet.has(p.id),
-    }));
+    const data = (patients as PrismaPatient[]).map((p) =>
+      buildPatientResponse(p, consentSet.has(p.id), null),
+    );
 
     return { data, total, page, limit };
   }
@@ -124,17 +167,23 @@ export class PatientsService {
         tenantId,
         ...(userLocationId !== null && { locationId: userLocationId }),
       },
+      include: {
+        location: { select: { name: true } },
+        patientConsents: {
+          where: { revokedAt: null },
+          orderBy: { grantedAt: 'desc' },
+          take: 1,
+        },
+      },
     });
 
     if (!patient) {
       throw new NotFoundException('Patient not found');
     }
 
-    const consentCount = await this.prisma.patientConsent.count({
-      where: { patientId: id, tenantId, revokedAt: null },
-    });
-
-    return { ...(patient as PrismaPatient), hasConsent: consentCount > 0 };
+    const typed = patient as PrismaPatient;
+    const activeConsent = typed.patientConsents?.[0] ?? null;
+    return buildPatientResponse(typed, activeConsent !== null, activeConsent);
   }
 
   async update(
@@ -153,11 +202,16 @@ export class PatientsService {
         data: dto,
       });
 
-      const consentCount = await this.prisma.patientConsent.count({
+      const activeConsent = await this.prisma.patientConsent.findFirst({
         where: { patientId: id, tenantId, revokedAt: null },
+        orderBy: { grantedAt: 'desc' },
       });
 
-      return { ...(patient as PrismaPatient), hasConsent: consentCount > 0 };
+      return buildPatientResponse(
+        patient as PrismaPatient,
+        activeConsent !== null,
+        activeConsent as PrismaConsent | null,
+      );
     } catch (err: unknown) {
       const prismaError = err as { code?: string };
       if (prismaError.code === 'P2025') {
@@ -174,11 +228,16 @@ export class PatientsService {
         data: { status: 'DELETED' },
       });
 
-      const consentCount = await this.prisma.patientConsent.count({
+      const activeConsent = await this.prisma.patientConsent.findFirst({
         where: { patientId: id, tenantId, revokedAt: null },
+        orderBy: { grantedAt: 'desc' },
       });
 
-      return { ...(patient as PrismaPatient), hasConsent: consentCount > 0 };
+      return buildPatientResponse(
+        patient as PrismaPatient,
+        activeConsent !== null,
+        activeConsent as PrismaConsent | null,
+      );
     } catch (err: unknown) {
       const prismaError = err as { code?: string };
       if (prismaError.code === 'P2025') {

@@ -5,6 +5,7 @@ export interface SessionUser {
   userId: string;
   tenantId: string;
   role: UserRole;
+  locationId: string | null;
 }
 
 /**
@@ -33,6 +34,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     const userId = payload['sub'];
     const tenantId = payload['tenantId'];
     const role = payload['role'];
+    const locationId = payload['locationId'];
 
     if (
       typeof userId !== 'string' ||
@@ -42,7 +44,12 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       return null;
     }
 
-    return { userId, tenantId, role: role as UserRole };
+    return {
+      userId,
+      tenantId,
+      role: role as UserRole,
+      locationId: typeof locationId === 'string' ? locationId : null,
+    };
   } catch {
     return null;
   }
