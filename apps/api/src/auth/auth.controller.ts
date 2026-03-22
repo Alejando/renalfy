@@ -11,8 +11,8 @@ import {
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { JwtRefreshGuard } from '../common/guards/jwt-refresh.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import {
   CurrentUser,
   type CurrentUserPayload,
@@ -23,12 +23,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
   }
 
   @Post('refresh')
+  @Public()
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
   refresh(@CurrentUser() user: { userId: string; refreshToken: string }) {
@@ -36,7 +38,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   logout() {
     // Stateless JWT — client discards tokens
@@ -44,13 +45,11 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: CurrentUserPayload) {
     return this.auth.me(user.userId);
   }
 
   @Patch('me/password')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   changePassword(
     @CurrentUser() user: CurrentUserPayload,

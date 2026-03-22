@@ -6,15 +6,36 @@ import { useState } from 'react';
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 const BASE_DOMAIN = IS_LOCAL ? 'localhost:4000' : 'renalfy.app';
 const PROTOCOL = IS_LOCAL ? 'http' : 'https';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4001/api';
 
 export default function RenafyLoginPage() {
   const [slug, setSlug] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleContinue(e: React.FormEvent) {
+  async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = slug.trim().toLowerCase();
-    if (trimmed) {
+    if (!trimmed) return;
+
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/public/tenants/${trimmed}`);
+      if (res.status === 404) {
+        setError('No encontramos una clínica con ese subdominio. Verifica e intenta de nuevo.');
+        return;
+      }
+      if (!res.ok) {
+        setError('Ocurrió un error al verificar el subdominio. Intenta de nuevo.');
+        return;
+      }
       window.location.href = `${PROTOCOL}://${trimmed}.${BASE_DOMAIN}/login`;
+    } catch {
+      setError('No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -24,7 +45,7 @@ export default function RenafyLoginPage() {
 
         {/* Left panel */}
         <section className="hidden md:flex flex-col justify-between w-5/12 bg-surface-container-low p-8 md:p-16">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #00647c, #007f9d)' }}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M10 3v14M3 10h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
@@ -33,7 +54,7 @@ export default function RenafyLoginPage() {
             <span className="font-headline text-2xl font-extrabold tracking-tight text-primary">
               Renalfy
             </span>
-          </div>
+          </Link>
 
           <div>
             <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface leading-tight mb-6">
@@ -84,7 +105,7 @@ export default function RenafyLoginPage() {
                       id="clinic-slug"
                       type="text"
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
+                      onChange={(e) => { setSlug(e.target.value); setError(''); }}
                       placeholder="nombre-clinica"
                       autoComplete="off"
                       autoCapitalize="none"
@@ -100,16 +121,24 @@ export default function RenafyLoginPage() {
                   </p>
                 </div>
 
+                {error && (
+                  <p role="alert" className="text-sm text-error font-medium bg-error-container/30 border border-error/20 rounded-lg px-4 py-3">
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  disabled={!slug.trim()}
+                  disabled={!slug.trim() || isLoading}
                   className="w-full text-on-primary font-headline font-bold text-lg py-4 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
                   style={{ background: 'linear-gradient(135deg, #00647c, #007f9d)' }}
                 >
-                  Continuar
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  {isLoading ? 'Verificando...' : 'Continuar'}
+                  {!isLoading && (
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
                 </button>
               </form>
 

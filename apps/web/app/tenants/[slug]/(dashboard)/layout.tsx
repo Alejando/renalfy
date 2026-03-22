@@ -3,10 +3,13 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LogoutButton } from './components/logout-button';
+import { getSessionUser } from '../../../../lib/session';
 
 interface Props {
   children: ReactNode;
 }
+
+const SETTINGS_ROLES = ['OWNER', 'ADMIN'] as const;
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Inicio' },
@@ -23,6 +26,11 @@ export default async function DashboardLayout({ children }: Props) {
   if (!accessToken) {
     redirect('/login');
   }
+
+  const sessionUser = await getSessionUser();
+  const canAccessSettings =
+    sessionUser !== null &&
+    (SETTINGS_ROLES as readonly string[]).includes(sessionUser.role);
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -48,6 +56,14 @@ export default async function DashboardLayout({ children }: Props) {
                 {link.label}
               </Link>
             ))}
+            {canAccessSettings && (
+              <Link
+                href="/settings/locations"
+                className="text-sm font-medium text-secondary hover:text-primary transition-colors"
+              >
+                Configuración
+              </Link>
+            )}
           </nav>
 
           {/* User actions */}

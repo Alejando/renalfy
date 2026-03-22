@@ -37,14 +37,14 @@ export default function TenantLoginPage() {
 
           {/* Logo */}
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-12">
+            <Link href={`/tenants/${slug}`} className="flex items-center gap-3 mb-12 hover:opacity-80 transition-opacity w-fit">
               <div className="w-12 h-12 bg-on-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary text-2xl font-black">R</span>
               </div>
               <span className="text-2xl font-extrabold tracking-tight text-on-primary font-headline">
                 Renalfy
               </span>
-            </div>
+            </Link>
             <h1 className="text-5xl font-extrabold text-on-primary leading-tight mb-6 font-headline">
               Gestión <br />
               <span className="text-primary-fixed">Clínica</span> <br />
@@ -83,9 +83,9 @@ export default function TenantLoginPage() {
           <div className="w-full max-w-md">
             {/* Mobile branding */}
             <div className="md:hidden flex items-center gap-2 mb-8">
-              <span className="text-xl font-bold tracking-tight text-primary font-headline">
+              <Link href={`/tenants/${slug}`} className="text-xl font-bold tracking-tight text-primary font-headline hover:opacity-80 transition-opacity">
                 Renalfy
-              </span>
+              </Link>
             </div>
 
             <div className="mb-10 text-center md:text-left">
