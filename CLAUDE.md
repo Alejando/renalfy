@@ -851,36 +851,45 @@ import { PrismaService } from '../prisma/prisma.service';
 
 ## Sprints (referencia)
 
-| Sprint | Entregable | Tipo | Estado |
-|---|---|---|---|
-| 1 | Setup monorepo, Docker, CI/CD, ESLint/Prettier | Infra | ✅ Listo |
-| 2 | Auth JWT + refresh, modelo base de tenants | Back | ✅ Listo |
-| 3 | Locations, Users, Roles, guardias de acceso | Back | ✅ Listo |
-| 4 | Landing page dinámica por tenant (branding) | Front | ✅ Listo |
-| 5 | Módulo 1 — Pacientes + Tipos de servicio | Back | ✅ Listo |
-| 6 | Módulo 1 — Citas/Sesiones con formulario dinámico | Back | ✅ Listo |
-| 7 | Módulo 1 — Recibos (folio + flujo de estados) | Back | ✅ Listo |
-| 8 | UI — Auth (login, logout, cambio de contraseña) | Front | Siguiente |
-| 9 | UI — Settings: Locations + Users | Front | Pendiente |
-| 10 | UI — Módulo 1: Pacientes + Tipos de servicio | Front | Pendiente |
-| 11 | UI — Módulo 1: Citas + formulario clínico dinámico | Front | Pendiente |
-| 12 | UI — Módulo 1: Recibos | Front | Pendiente |
-| 13 | Back — Módulo 2: Planes + Empresas | Back | Pendiente |
-| 14 | UI — Módulo 2: Planes + Empresas | Front | Pendiente |
-| 15 | Back — Módulo 3: Productos + Stock por sucursal | Back | Pendiente |
-| 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente |
-| 17 | Back — Módulo 3: Proveedores + Órdenes de compra | Back | Pendiente |
-| 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | Pendiente |
-| 19 | Back — Módulo 3: Compras + Movimientos de inventario | Back | Pendiente |
-| 20 | UI — Módulo 3: Compras + Movimientos | Front | Pendiente |
-| 21 | Back — Módulo 4: Ventas | Back | Pendiente |
-| 22 | UI — Módulo 4: Ventas | Front | Pendiente |
-| 23 | Back — Módulo 4: Cortes de caja + Ingresos/Egresos | Back | Pendiente |
-| 24 | UI — Módulo 4: Cortes de caja + Ingresos/Egresos | Front | Pendiente |
-| 25-26 | Reportes PDF y Excel (back + front) | Full | Pendiente |
-| 27 | Notificaciones in-app | Full | Pendiente |
-| 28 | Script de migración SUTR → Renalfy | Back | Pendiente |
-| 29 | QA, ajustes UX, deploy producción | QA | Pendiente |
+> Actualizado 2026-03-22 — Replanificado con base en análisis de migración SUTR → Renalfy.
+> Documentos de migración en `/MIGRATION_ANALYSIS.md`, `/MIGRATION_EXECUTIVE_SUMMARY.md`, `/MIGRATION_QUICK_START.md`.
+
+| Sprint | Entregable | Tipo | Estado | Dep. |
+|---|---|---|---|---|
+| 1 | Setup monorepo, Docker, CI/CD, ESLint/Prettier | Infra | ✅ Listo | — |
+| 2 | Auth JWT + refresh, modelo base de tenants | Back | ✅ Listo | 1 |
+| 3 | Locations, Users, Roles, guardias de acceso | Back | ✅ Listo | 2 |
+| 4 | Landing page dinámica por tenant (branding) | Front | ✅ Listo | 3 |
+| 5 | Módulo 1 — Pacientes + Tipos de servicio (backend) | Back | ✅ Listo | 3 |
+| 6 | Módulo 1 — Citas/Sesiones con formulario dinámico (backend) | Back | ✅ Listo | 5 |
+| 7 | Módulo 1 — Recibos (folio + flujo de estados) (backend) | Back | ✅ Listo | 6 |
+| 8 | UI — Auth (login, logout, cambio de contraseña) | Front | ✅ Listo | 2 |
+| 9 | UI — Settings: Locations + Users | Front | ✅ Listo | 3 |
+| 10 | UI — Módulo 1: Pacientes + Tipos de servicio | Front | ✅ Listo | 5 |
+| 11 | UI — Módulo 1: Recibos | Front | ✅ Listo | 7 |
+| 12 | UI — Módulo 1: Citas + formulario clínico dinámico | Full | En progreso | 6, 10 |
+| 13 | Módulo 2 — Empresas + Planes (backend) | Back | Pendiente | 12 |
+| 14 | UI — Módulo 2: Empresas + Planes | Front | Pendiente | 13 |
+| 15 | Módulo 3 — Productos + Stock por sucursal (backend) | Back | Pendiente | 12 |
+| 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente | 15 |
+| 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | Pendiente | 15 |
+| 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | Pendiente | 17 |
+| 19 | Módulo 3 — Compras + Movimientos de inventario (backend) | Back | Pendiente | 17 |
+| 20 | UI — Módulo 3: Compras + Movimientos | Front | Pendiente | 19 |
+| 21 | Módulo 4 — Ventas (backend) | Back | Pendiente | 15 |
+| 22 | UI — Módulo 4: Ventas | Front | Pendiente | 21 |
+| 23 | Módulo 4 — Ingresos, Egresos, Cortes de caja (backend) | Back | Pendiente | 21 |
+| 24 | UI — Módulo 4: Ingresos, Egresos, Cortes de caja | Front | Pendiente | 23 |
+| 25 | QA — Pruebas de sistema completo | QA | Pendiente | 24 |
+| 26 | Pre-migración — Schema tweaks + script skeleton | Back | Pendiente | 25 |
+| 27 | Migración — Desarrollo de script + validación muestra | Back | Pendiente | 26 |
+| 28 | Migración — Validación completa + Cutover producción | Back+Ops | Pendiente | 27 |
+| 29 | Post-launch — Estabilización + bug fixes | Full | Pendiente | 28 |
+| 30+ | Reportes PDF/Excel, Notificaciones, Analytics, mejoras UX | Full | Pendiente | 29 |
+
+### Camino crítico para la migración
+
+Para poder correr el script de migración de SUTR, deben estar listos: **Sprints 12 → 24 → 25 → 26 → 27 → 28**
 
 ## Active Technologies
 - TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (006-appointments-dynamic-form)

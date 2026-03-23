@@ -27,58 +27,17 @@ We're moving **SUTR** (legacy single-tenant system) → **Renalfy** (new multi-t
 
 | Metric | Value |
 |---|---|
-| **Tables to migrate** | 30 (users, patients, appointments, receipts, inventory, cash, etc.) |
+| **Tables to migrate** | 28 (users, patients, appointments, receipts, inventory, cash, etc.) |
 | **Rows per clinic** | ~25,000 (patients, sessions, sales, inventory) |
-| **Hardcoded fields** | 48 dialysis-specific fields (peso_seco, ktv, heparina, ...) |
-| **Timeline** | 4 weeks (Sprints 27–30) |
+| **Clinical data** | Dropped — never implemented in SUTR; appointments migrate as date + receipt link only |
+| **Timeline** | 3 weeks (Sprints 27–29) |
 | **Effort** | 1 full-time engineer + part-time support |
 | **Downtime** | 1–2 hours (or zero with parallel operation) |
 | **Risk Level** | Low (tested rollback plan available) |
 
 ---
 
-## The Big Challenge: 48 Dialysis Fields
-
-SUTR stores dialysis data as **hardcoded columns:**
-
-```sql
-CREATE TABLE sesiones (
-  peso_seco DOUBLE,
-  ktv VARCHAR,
-  heparina INT,
-  fc_pre INT,
-  fc_post INT,
-  ... 43 more columns
-);
-```
-
-Renalfy stores data as **flexible JSON + template:**
-
-```typescript
-// Template (defines field structure)
-ClinicalTemplate {
-  fields: [
-    { key: 'peso_seco', label: 'Peso seco', type: 'decimal', unit: 'kg', ... },
-    { key: 'ktv', label: 'Kt/V', type: 'string', ... },
-    // ... all 48 fields defined once
-  ]
-}
-
-// Data (stores values)
-Appointment {
-  clinicalData: {
-    peso_seco: 72.5,
-    ktv: '1.2',
-    // ... values for same 48 fields
-  }
-}
-```
-
-**Why this matters:** Once migrated, a future dialysis clinic (or nutrition clinic, or cardiology) can define *their own* fields without touching code.
-
----
-
-## Five Decisions Needed Before We Start
+## Four Decisions Needed Before We Start
 
 ### 1️⃣ Consent: How do we handle patient privacy law?
 
@@ -119,20 +78,7 @@ Appointment {
 
 ---
 
-### 4️⃣ Dialysis Fields: Confirm all 48
-
-**The problem:** We extracted 48 field names from SUTR schema, but need to verify:
-- Are all 48 required? Any obsolete?
-- What are proper units and labels for each?
-- What's the medical meaning of each? (For validation rules)
-
-**Action:** Backend lead must review `/docs/SUTR_RENALFY_ENTITY_MAPPING.md` (section on sesiones) and confirm with SUTR users/doctors.
-
-**Decision needed by:** 1 week
-
----
-
-### 5️⃣ Go-Live: Hard cutover or parallel?
+### 4️⃣ Go-Live: Hard cutover or parallel?
 
 **The problem:** Switching systems has risk. How do we minimize it?
 
@@ -148,27 +94,27 @@ Appointment {
   - Tested rollback plan (< 2 hours to revert)
   - Medium risk; acceptable if backup solid
 
-**Decision needed by:** 2 weeks (before Phase 4 cutover planning)
+**Decision needed by:** 2 weeks (before Phase 3 cutover planning)
 
 ---
 
-## Timeline: 4 Weeks
+## Timeline: 3 Weeks
 
 ```
-WEEK 1 (Sprint 27.5)    WEEK 2 (Sprint 27–28)  WEEK 3 (Sprint 28–29)  WEEK 4 (Sprint 30)
-├─ Decisions            ├─ Script dev           ├─ Full validation      ├─ Production cutover
-├─ Schema updates       ├─ Sample data test     ├─ Backup & test        ├─ Go-live
-└─ Prep work            └─ Bug fixes            └─ Rollback plan        └─ User support
+WEEK 1 (Sprint 28)        WEEK 2 (Sprint 28–29)   WEEK 3 (Sprint 29)
+├─ Decisions              ├─ Migration script dev  ├─ Full validation
+├─ Schema minor tweaks    ├─ Sample data test      ├─ Backup & rollback test
+└─ Prep + SUTR export     └─ Bug fixes             └─ Production cutover
 ```
 
 | Phase | Tasks | Owner | Done? |
 |---|---|---|---|
-| **Phase 0 (Days 1–3)** | Make 5 decisions above | Product + Stakeholders | ⏳ |
-| **Phase 0.5 (Days 4–5)** | Update Renalfy schema (4 fields) | Backend lead | ⏳ |
-| **Phase 1 (Days 6–12)** | Extract SUTR schema, build migration script skeleton | Migration engineer | ⏳ |
-| **Phase 2 (Days 13–26)** | Write migration logic, test on sample data | Migration engineer | ⏳ |
-| **Phase 3 (Days 27–33)** | Full-dataset validation, reconciliation | Migration engineer + QA | ⏳ |
-| **Phase 4 (Day 34)** | Production migration, go-live | Migration engineer + DBA | ⏳ |
+| **Phase 0 (Days 1–3)** | Make 4 decisions above | Product + Stakeholders | ⏳ |
+| **Phase 0.5 (Days 4–5)** | Minor Renalfy schema tweaks (Patient optional fields) | Backend lead | ⏳ |
+| **Phase 1 (Days 6–10)** | Extract SUTR data, build migration script skeleton | Migration engineer | ⏳ |
+| **Phase 2 (Days 11–18)** | Write migration logic, test on sample data | Migration engineer | ⏳ |
+| **Phase 3 (Days 19–21)** | Full-dataset validation, reconciliation | Migration engineer + QA | ⏳ |
+| **Phase 4 (Day 22)** | Production migration, go-live | Migration engineer + DBA | ⏳ |
 
 ---
 
@@ -176,8 +122,8 @@ WEEK 1 (Sprint 27.5)    WEEK 2 (Sprint 27–28)  WEEK 3 (Sprint 28–29)  WEEK 4
 
 ### ✅ Transfers Safely
 
-- Patients (all fields)
-- Appointments & vital signs (converted from hardcoded → JSON)
+- Patients (demographics, status)
+- Appointments (date + receipt link only)
 - Receipts (with new sequential folios)
 - Plans & companies
 - Inventory & products
@@ -189,11 +135,12 @@ WEEK 1 (Sprint 27.5)    WEEK 2 (Sprint 27–28)  WEEK 3 (Sprint 28–29)  WEEK 4
 - **Patient Consent:** Backdated records showing consent (legal requirement)
 - **Audit Log:** Immutable record of all migrations (regulatory requirement)
 
-### ❌ Dropped (Not Needed)
+### ❌ Dropped (Not Migrated)
 
+- Dialysis clinical session data (`sesions` — 48 fields never properly implemented)
+- Periodic vital signs (`signos` — never properly implemented)
 - Old password reset tokens
-- Cache/temp tables
-- Proprietary SUTR configuration
+- Notifications log
 
 ---
 
@@ -271,8 +218,11 @@ A: ~90% same workflows. Some UI improvements. Training provided.
 **Q: What if something breaks?**
 A: We have a tested rollback plan. Revert to pre-migration state in < 2 hours. Full data backup maintained.
 
+**Q: What about my session/clinical history?**
+A: The dialysis session form data was never properly captured in SUTR. Appointments migrate with their date and receipt link intact. Clinical data capture starts fresh in Renalfy.
+
 **Q: How long does the migration take?**
-A: 4 weeks total (Sprints 27–30). Cutover day: 1–2 hours downtime (or zero with parallel operation).
+A: 3 weeks total (Sprints 28–29). Cutover day: 1–2 hours downtime (or zero with parallel operation).
 
 **Q: Can we test before going live?**
 A: Yes. We'll run on a full backup of SUTR data, validate everything, then replicate to production.
@@ -284,16 +234,15 @@ A: All historical data preserved. Reports generate in Renalfy same as before.
 
 ## Decision Meeting Template
 
-**Agenda (60 min):**
+**Agenda (45 min):**
 1. Overview (10 min) — This document
 2. Decision 1: Consent backfill (10 min)
 3. Decision 2: Income/expense location (5 min)
 4. Decision 3: Receipt folio format (5 min)
-5. Decision 4: Dialysis field confirmation (10 min)
-6. Decision 5: Go-live approach (10 min)
-7. Timeline & next steps (10 min)
+5. Decision 4: Go-live approach (10 min)
+6. Timeline & next steps (5 min)
 
-**Attendees:** Product Owner, SUTR users/doctors, backend lead, legal/compliance, migration engineer
+**Attendees:** Product Owner, backend lead, legal/compliance, migration engineer
 
 **Outcome:** Documented decisions in meeting notes. Migration engineer begins Phase 1 immediately after.
 
@@ -301,7 +250,7 @@ A: All historical data preserved. Reports generate in Renalfy same as before.
 
 ## Success Criteria
 
-✅ **Before:** All 5 decisions made, documented, communicated
+✅ **Before:** All 4 decisions made, documented, communicated
 ✅ **During:** 0 data loss, referential integrity 100%
 ✅ **After:** All users can log in, see data, run reports
 ✅ **Compliance:** Consent records created, audit logs populated
@@ -313,7 +262,7 @@ A: All historical data preserved. Reports generate in Renalfy same as before.
 
 | Role | Name | Availability |
 |---|---|---|
-| **Migration Lead** | (TBD) | Full-time, Sprints 27–30 |
+| **Migration Lead** | (TBD) | Full-time, Sprints 28–29 |
 | **Renalfy Architect** | (TBD) | For unblocking, design reviews |
 | **Product Owner** | (TBD) | Decisions, sign-offs |
 | **DB Admin** | (TBD) | Backup, restore, performance |
@@ -323,11 +272,11 @@ A: All historical data preserved. Reports generate in Renalfy same as before.
 ## Next Steps (Right Now!)
 
 1. **Share this document** with team
-2. **Schedule decision meeting** (60 min, this week)
-3. **Assign migration lead** (backend engineer, 1 FTE available Sprints 27–30)
+2. **Schedule decision meeting** (45 min, this week)
+3. **Assign migration lead** (backend engineer, 1 FTE available Sprints 28–29)
 4. **Read detailed docs** (tech leads)
-5. **Make 5 decisions** (by end of week)
-6. **Kickoff Phase 1** (Sprint 27 starts)
+5. **Make 4 decisions** (by end of week)
+6. **Kickoff Phase 1** (Sprint 28 starts)
 
 ---
 
@@ -335,16 +284,15 @@ A: All historical data preserved. Reports generate in Renalfy same as before.
 
 ```
 SUTR (Legacy Monolith)
-├─ 30 tables, 25K rows
-├─ 48 hardcoded dialysis fields
+├─ 28 tables migrated, 25K rows
+├─ Clinical session data DROPPED (never used)
 ├─ Single-tenant
 └─ Zero compliance features
 
-      ↓ MIGRATE (4 weeks, 1 FTE)
+      ↓ MIGRATE (3 weeks, 1 FTE)
 
 Renalfy (Modern SaaS)
 ├─ Multi-tenant architecture
-├─ 48 fields → JSON + ClinicalTemplate
 ├─ PatientConsent (LFPDPPP compliance)
 ├─ AuditLog (NOM-004 compliance)
 └─ Ready for growth (new specialties, new clients)
@@ -353,18 +301,17 @@ KEY DECISIONS
 ├─ Consent: Backdate (1 day before first appt)
 ├─ Location: Primary location for income/expense
 ├─ Folios: {LOC_CODE}-{YYYY}-{NNNNN}
-├─ Fields: Confirm 48 dialysis fields
 └─ Go-Live: Parallel operation (30–60 days)
 
-TIMELINE: 4 weeks (Sprints 27–30)
+TIMELINE: 3 weeks (Sprints 28–29)
 ├─ Phase 0: Decisions (days 1–3)
-├─ Phase 1: Prep (days 6–12)
-├─ Phase 2: Dev (days 13–26)
-├─ Phase 3: Validation (days 27–33)
-└─ Phase 4: Cutover (day 34)
+├─ Phase 1: Prep (days 4–10)
+├─ Phase 2: Dev (days 11–18)
+├─ Phase 3: Validation (days 19–21)
+└─ Phase 4: Cutover (day 22)
 
 OUTCOME
-✅ Zero data loss
+✅ Zero data loss (on used data)
 ✅ Regulatory compliance
 ✅ SaaS-ready platform
 ✅ Users migrated smoothly
@@ -374,6 +321,6 @@ OUTCOME
 
 **Questions?** Review detailed docs or schedule a sync.
 
-**Ready to start?** Make the 5 decisions. We start Phase 0 this week.
+**Ready to start?** Make the 4 decisions. We start Phase 0 this week.
 
-**Timeline:** Go-live in 4 weeks (Sprints 27–30, early April 2026).
+**Timeline:** Go-live in 3 weeks (Sprints 28–29, mid April 2026).

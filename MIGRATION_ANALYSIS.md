@@ -12,8 +12,9 @@ SUTR (Sistema Único de Tratamiento Renal) is a **single-tenant Laravel monolith
 The migration strategy requires:
 1. **Mapping SUTR's fixed schema** to Renalfy's configurable data model
 2. **Converting single-tenant data** to multi-tenant (SUTR becomes the first tenant)
-3. **Generalizing 50+ dialysis-specific fields** into a configurable `ClinicalTemplate` JSON structure
-4. **Adding missing features** to Renalfy (particularly compliance-related and some business logic nuances)
+3. **Adding missing features** to Renalfy (particularly compliance-related and some business logic nuances)
+
+> **Scope decision (2026-03-22):** The dialysis-specific clinical data in `sesions` (48 hardcoded fields) and `signos` was **never properly implemented or used** in SUTR. These tables will be migrated for their structural/billing relationships only — the clinical field values are **dropped**. No `ClinicalTemplate` needs to be created for the migration.
 
 ---
 
@@ -33,8 +34,8 @@ The migration strategy requires:
 | `unidads` | id, nombre, direccion, estatus, timestamps | Single location per clinic; no parent organization |
 | `pacientes` | id, unidad_id, nombre, direccion, telefono, celular, fecha_nacimiento, estatus | Basic demographics; no email, SSN, or ID number |
 | `conceptos` | id, nombre, estatus | Service types; very minimal structure |
-| `sesions` | id, recibo_id, fecha, 48 dialysis-specific fields (peso_seco, ktv, heparina, etc.), timestamps | **HUGE field count** — hardcoded for hemodialysis only |
-| `signos` | id, sesion_id, hora, t_a, fc, qs, qd, p-art, p-ven, ptm, vel_uf, uf_conseg, soluciones, observaciones | Periodic vital sign measurements during a session |
+| `sesions` | id, recibo_id, fecha, 48 dialysis-specific fields (peso_seco, ktv, heparina, etc.), timestamps | Clinical fields **never used** — migrate only id, recibo_id, fecha |
+| `signos` | id, sesion_id, hora, t_a, fc, qs, qd, p-art, p-ven, ptm, vel_uf, uf_conseg, soluciones, observaciones | **Dropped** — clinical data was never properly implemented |
 | `recibos` | id, paciente_id, unidad_id, user_id, tipo_pago, fecha, cantidad, estatus | Invoice/receipt for a session; minimal structure |
 
 #### Plans / Companies Module
@@ -77,60 +78,17 @@ The migration strategy requires:
 
 ### 1.2 SUTR Business Logic & Field Mapping
 
-#### Dialysis-Specific Fields in `sesions` (48 hardcoded fields)
+#### `sesions` and `signos` — Clinical Data (DROPPED)
 
-These are **THE critical challenge** for generic migration:
-
-**Pre-session vitals:**
-- `t_a_pie` — Blood pressure (pre-session, standing)
-- `fc_pre` — Heart rate (pre)
-- `peso_seco` — Dry weight
-- `peso_pre` — Weight pre-session
-- `peso_post` — Weight post-session
-- `peso_grando` — (unclear; possibly "weight gained" or typo)
-
-**Dialysis machine parameters:**
-- `uf_programada` — Ultrafiltration programmed (L)
-- `filtro` — Filter model
-- `reuso_n` — Reuse number
-- `heparina` — Heparin dosage
-- `qs` — Blood flow (Qs, mL/min)
-- `qd` — Dialysate flow (Qd, mL/min)
-- `vsp` — Venous Pressure (VSP)
-- `na_b` — Sodium balance
-- `no_maquina` — Machine number
-- `na_presc` — Sodium prescribed
-- `perfil_na` — Sodium profile
-- `perfil_uf` — UF profile
-- `bolo` — Heparin bolus
-- `ui_hr` — Heparin units/hour
-- `ktv` — Kt/V (adequacy measure)
-- `acc_vasc` — Vascular access type
-
-**Post-session:**
-- `t_apost` — Blood pressure (post-session)
-- `fc_post` — Heart rate (post)
-
-**Administration:**
-- `conecto` — Connection time
-- `desconecto` — Disconnection time
-- `total` — Total session time
-- `medicamentos` — Medications administered
-- `alergias` — Allergies noted
-- `observaciones` — Free-form notes
-
-**Periodic measurements during session (in `signos`):**
-- `hora` — Time of measurement
-- `t_a` — Blood pressure (periodic)
-- `fc` — Heart rate (periodic)
-- `qs`, `qd` — Flow rates (may be adjusted)
-- `p-art`, `p-ven`, `ptm` — Arterial, venous, transmembrane pressures
-- `vel_uf` — UF velocity
-- `uf_conseg` — UF achieved
-- `soluciones` — Solutions running
-- `observaciones` — Notes
-
-**Total:** ~48 fields across session init + periodic measurements
+> These tables contain 48 dialysis-specific columns (`peso_seco`, `ktv`, `heparina`, `signos`, etc.) that were **never properly implemented or used** in production. The clinical field values will not be migrated.
+>
+> What IS migrated from `sesions`:
+> - `id` → used for ID mapping to `Appointment`
+> - `recibo_id` → maps to `Appointment.receiptId`
+> - `fecha` → maps to `Appointment.scheduledAt`
+> - `created_at`, `updated_at` → timestamps
+>
+> `signos` is **entirely dropped** — no corresponding records will be created in `Measurement`.
 
 ---
 
@@ -335,36 +293,21 @@ SUTR conceptos → Renalfy ServiceType:
   (No price in SUTR; leave Renalfy price null)
 ```
 
-#### Sessions → Appointments + Measurements
+#### Sessions → Appointments (basic fields only)
 ```
-SUTR sesions (48 fields) → Renalfy Appointment + ClinicalTemplate
+SUTR sesions → Renalfy Appointment
+  (Clinical fields DROPPED — never implemented in production)
 
-1. Create ClinicalTemplate for "Hemodialysis" ServiceType:
-   - serviceTypeId = serviceType("Hemodialysis").id
-   - fields = JSON array of 48 field definitions
+For each sesion row:
+  Appointment.id = new UUID
+  Appointment.receiptId = mapped_receipt_id
+  Appointment.scheduledAt = sesion.fecha
+  Appointment.status = COMPLETED (assume all historical are done)
+  Appointment.clinicalData = null (no data to migrate)
+  Appointment.createdAt = sesion.created_at
+  Appointment.updatedAt = sesion.updated_at
 
-2. For each sesion row:
-   - Appointment.id = new UUID
-   - Appointment.receiptId = mapped_receipt_id
-   - Appointment.scheduledAt = sesion.fecha
-   - Appointment.status = COMPLETED (assume all historical are done)
-   - Appointment.clinicalData = {
-       "peso_seco": ...,
-       "ktv": ...,
-       ... (all 48 fields as a flat JSON object)
-     }
-   - Appointment.createdAt = sesion.created_at
-   - Appointment.updatedAt = sesion.updated_at
-
-3. For each signos row within sesion:
-   - Measurement.appointmentId = appointment.id
-   - Measurement.recordedAt = sesion.fecha + signos.hora
-   - Measurement.data = {
-       "t_a": ...,
-       "fc": ...,
-       "qs": ...,
-       ... (all signos columns)
-     }
+signos → (DROPPED entirely — not migrated)
 ```
 
 #### Receipts
@@ -595,10 +538,7 @@ enum ProductStatus {
 }
 ```
 
-#### 4. ClinicalTemplate — Pre-populate Hemodialysis template
-This is **not a schema change**, but **seed data** that must be created during migration.
-
-#### 5. User — Validate role assignments
+#### 4. User — Validate role assignments
 Ensure that migrated users have valid roles. May need data validation script.
 
 #### 6. Receipt — Ensure folio generation is in place
@@ -620,11 +560,7 @@ Current schema allows null tenantId (for platform-level events). For SUTR migrat
 #### 3. Stock Updates on Purchase / Sale / Movement
 **Already implemented** in Sprint 15+ (inventory). Verify transactions are atomic.
 
-#### 4. Appointment clinicalData Validation
-Need to validate JSON fields against ClinicalTemplate.fields during creation.
-**May need:** Custom validator or service method.
-
-#### 5. Patient Consent Auto-population
+#### 4. Patient Consent Auto-population
 **Need to add** service method to backfill PatientConsent records during migration.
 
 #### 6. Audit Log Auto-population
@@ -653,31 +589,6 @@ For SUTR (first tenant):
    address: (from company info)
    ```
 
-3. **ClinicalTemplate for Hemodialysis:**
-   ```json
-   {
-     "serviceTypeId": "...",
-     "fields": [
-       {
-         "key": "peso_seco",
-         "label": "Peso seco",
-         "type": "decimal",
-         "unit": "kg",
-         "required": true,
-         "order": 1
-       },
-       {
-         "key": "ktv",
-         "label": "Kt/V",
-         "type": "string",
-         "required": false,
-         "order": 15
-       },
-       // ... all 48 fields, ordered logically
-     ]
-   }
-   ```
-
 ---
 
 ## Part 5: Migration Script Roadmap
@@ -703,10 +614,8 @@ For SUTR (first tenant):
 
 5. **Clinic Data (in order):**
    - ServiceTypes (from `conceptos`)
-   - ClinicalTemplate (create for Hemodialysis)
    - Patients + PatientConsent (backfilled)
-   - Appointments (from `sesions`)
-   - Measurements (from `signos`)
+   - Appointments (from `sesions` — basic fields only; clinical data dropped)
    - Receipts (generate folios)
 
 6. **Plan Data:**
@@ -787,12 +696,11 @@ For SUTR (first tenant):
 | SUTR | Renalfy | Gap | Solution |
 |---|---|---|---|
 | No consent tracking | `PatientConsent` required | Legal | Create backdated consent records |
-| 48 hardcoded session fields | JSON + template | Arch change | Create ClinicalTemplate; extract columns |
-| `sesions` are flat rows | Appointment + Measurement | Normalization | Split session into appointment + vital signs |
+| `sesions` 48 clinical fields | Never used in prod | **DROPPED** | Migrate only fecha + recibo_id; `clinicalData = null` |
+| `signos` table | Never used in prod | **DROPPED** | No `Measurement` records created |
 | No ID / SSN / email | Optional in Renalfy | Future-proof | Leave NULL; can be added later |
-| `signos` tied to sesion | `Measurement` tied to Appointment | 1:1 mapping | Direct; multiple signos → multiple Measurements |
 
-**Action:** Write field-by-field mapping; test on sample data before full migration.
+**Action:** Migrate sesions with basic fields only; skip all clinical columns and signos entirely.
 
 ---
 
@@ -930,12 +838,12 @@ For SUTR (first tenant):
 
 ## Conclusion
 
-**Key Takeaway:** SUTR → Renalfy migration is **fundamentally an architecture shift**, not just a data lift.
+**Key Takeaway:** SUTR → Renalfy migration is **a straightforward data lift** with multi-tenant and compliance layers added.
 
-- **SUTR:** Monolith, hardcoded dialysis fields, single location, minimal compliance
-- **Renalfy:** SaaS, configurable via JSON + templates, multi-location, regulatory compliance
+- **SUTR:** Monolith, single location, minimal compliance
+- **Renalfy:** SaaS, multi-location, regulatory compliance built-in
 
-**The critical transformation:** 48 hardcoded dialysis session fields → JSON document with ClinicalTemplate schema.
+**The simplifying decision:** The 48 dialysis session fields and `signos` vital signs were never properly implemented in SUTR production. Clinical data migration is dropped entirely — `Appointment.clinicalData` will be `null` for all migrated records. Future clinical data capture starts fresh in Renalfy.
 
 **Estimated effort:**
 - Migration script development: 1–2 weeks
@@ -958,8 +866,8 @@ For SUTR (first tenant):
 | users | 5–50 | User | Medium | Role mapping; password hashing |
 | unidads | 1–10 | Location | Low | 1:1 mapping |
 | pacientes | 50–500 | Patient + PatientConsent | Medium | Consent backfill |
-| sesions | 500–5K | Appointment + ClinicalTemplate | High | Field extraction to JSON |
-| signos | 2K–20K | Measurement | Medium | Multi-row per session |
+| sesions | 500–5K | Appointment | Low | Basic fields only; clinical data dropped |
+| signos | 2K–20K | (DROPPED) | N/A | Clinical data never used; not migrated |
 | conceptos | 5–20 | ServiceType | Low | Direct mapping |
 | recibos | 500–5K | Receipt | Medium | Folio generation |
 | empresas | 5–30 | Company | Low | Direct mapping |

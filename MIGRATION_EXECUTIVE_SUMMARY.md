@@ -2,7 +2,7 @@
 
 **Prepared:** 2026-03-22
 **Status:** Analysis Complete, Ready for Planning
-**Timeline:** 4 weeks (Sprints 27–30)
+**Timeline:** 3 weeks (Sprints 28–29)
 
 ---
 
@@ -12,68 +12,45 @@ SUTR (Sistema Único de Tratamiento Renal) is a **legacy single-tenant Laravel m
 
 This migration will move all SUTR data into Renalfy while:
 - Converting SUTR into the **first Renalfy tenant** ("SUTR Clínicas de Diálisis")
-- Transforming 48 hardcoded dialysis fields into a **configurable JSON-based template**
-- Ensuring **100% data preservation** with regulatory compliance
-- Maintaining **5 years of clinical data** immutably (NOM-004 compliance)
+- Ensuring **100% data preservation** (on all data that was actually used) with regulatory compliance
+- Adding compliance infrastructure (consent, audit logs) that SUTR lacked
+
+> **Scope decision (2026-03-22):** The `sesions` (48 dialysis fields) and `signos` (vital signs) tables were never properly implemented or used in SUTR production. Clinical session data will **not** be migrated. Appointments migrate with date + receipt reference only. This eliminates the largest transformation complexity.
 
 ---
 
-## The Challenge
+## The Simplified Scope
 
-SUTR stores dialysis-specific data in a **monolithic, hardcoded schema**:
+The original analysis identified 48 hardcoded dialysis fields in `sesions` as the main migration challenge. However, this data was **never properly implemented or used** in SUTR production — the fields exist in the schema but carry no meaningful data.
 
-```sql
--- SUTR table with 48 hardcoded dialysis fields
-CREATE TABLE sesions (
-  id INT,
-  peso_seco DOUBLE,
-  ktv VARCHAR,
-  heparina INT,
-  fc_pre INT,
-  fc_post INT,
-  ... (46 more fields)
-);
-```
+**What this means:**
+- `sesions` → `Appointment`: migrate only `fecha` + `recibo_id` (date + receipt link)
+- `signos` → dropped entirely (no `Measurement` records created)
+- No `ClinicalTemplate` needed for migration
 
-Renalfy is **generic and configurable**:
-
-```prisma
-// Renalfy: flexible JSON + template
-model Appointment {
-  clinicalData Json   // Stores ANY fields dynamically
-  ...
-}
-
-model ClinicalTemplate {
-  fields Json         // Defines field schema per service type
-  ...
-}
-```
-
-**The key transformation:** Extract 48 SUTR fields → JSON document + ClinicalTemplate schema definition.
+The real migration work is in: users, patients, receipts, plans, companies, inventory, and cash modules — all straightforward table-to-table mappings.
 
 ---
 
 ## What's Involved
 
-### Data to Migrate (30 tables, ~25,000+ rows)
+### Data to Migrate (28 tables, ~25,000+ rows)
 
 | Module | SUTR Tables | Renalfy Models | Status |
 |---|---|---|---|
-| **Clinic** | users, unidades, pacientes, sesiones, signos, recibos, conceptos | User, Location, Patient, Appointment, Measurement, Receipt, ServiceType | ✅ Ready |
+| **Clinic** | users, unidades, pacientes, sesiones*, conceptos, recibos | User, Location, Patient, Appointment†, Receipt, ServiceType | ✅ Ready |
 | **Plans** | empresas, beneficios | Company, Plan | ✅ Ready |
 | **Inventory** | productos, producto_unidades, proveedores, producto_proveedores, pedidos, pedido_productos, compras, producto_compras, registros, producto_registros | Product, LocationStock, Supplier, SupplierProduct, PurchaseOrder, Purchases, InventoryMovement | ✅ Ready |
 | **Cash** | ventas, producto_ventas, ingresos, egresos, cortes | Sale, Income, Expense, CashClose | ✅ Ready |
 | **Compliance** | (new) | PatientConsent, AuditLog | ✅ Ready (backfill needed) |
 
+> `*` `sesions` migrates only `id`, `recibo_id`, `fecha` — clinical fields dropped.
+> `signos` table is **dropped entirely**.
+> `†` `Appointment.clinicalData` will be `null` for all migrated records.
+
 ### Unique Challenges
 
-1. **48 hardcoded fields → JSON + Template**
-   - Manually extract field definitions
-   - Map dialysis semantics (peso_seco, ktv, heparina, etc.)
-   - Create one-time ClinicalTemplate for Hemodialysis
-
-2. **Single tenant → Multi-tenant**
+1. **Single tenant → Multi-tenant**
    - SUTR has no concept of "organization"
    - Renalfy requires `tenantId` on every business table
    - Create one tenant called "SUTR", assign all data
@@ -97,33 +74,24 @@ model ClinicalTemplate {
 
 ## What Changes in Renalfy?
 
-### Schema Changes (4 additions, all backward-compatible)
+### Schema Changes (2 additions, both backward-compatible)
 
 ```prisma
-// 1. Patient: Add identity + consent flag fields
+// 1. Patient: Add optional identity fields (for future use)
 model Patient {
-  ssn: String?             // CURP (optional, for future)
-  insuranceNumber: String? // Policy number (optional)
-  email: String?           // Contact (optional)
-  bloodType: String?       // Medical (optional)
-  hasActiveConsent: Boolean // Flag for quick checks
+  ssn             String? // CURP (optional)
+  insuranceNumber String? // Policy number (optional)
+  email           String? // Contact email (optional)
 }
 
 // 2. Product: Add status for soft deletes
 enum ProductStatus { ACTIVE, INACTIVE, DISCONTINUED }
 model Product {
-  status: ProductStatus @default(ACTIVE)
-}
-
-// 3. ServiceType: Already has description + price (no change)
-
-// 4. ClinicalTemplate: Document field structure (comment, no schema change)
-model ClinicalTemplate {
-  fields Json // [{ key, label, type, unit, required, order, ... }]
+  status ProductStatus @default(ACTIVE)
 }
 ```
 
-**Migration effort:** < 1 day (create migrations, test, deploy)
+**Migration effort:** < half a day
 
 ---
 
@@ -131,14 +99,14 @@ model ClinicalTemplate {
 
 | Phase | Duration | Key Work | Effort |
 |---|---|---|---|
-| **Phase 0: Decisions** | 3–5 days | Confirm consent strategy, location assignment, folio format | 40 hrs |
-| **Phase 0.5: Schema** | 3–5 days | Update Prisma, apply migrations | 20 hrs |
-| **Phase 1: Prep** | 1 week | Extract SUTR schema, define field mappings, build script skeleton | 40 hrs |
-| **Phase 2: Development** | 1–2 weeks | Write migration logic, test on sample data | 80 hrs |
-| **Phase 3: Validation** | 1 week | Full dataset testing, reconciliation, performance | 40 hrs |
-| **Phase 4: Cutover** | 1 day | Production migration, rollback contingency, user comms | 16 hrs |
+| **Phase 0: Decisions** | 2–3 days | Confirm consent strategy, location assignment, folio format | 16 hrs |
+| **Phase 0.5: Schema** | 1 day | Update Prisma (2 models), apply migrations | 8 hrs |
+| **Phase 1: Prep** | 3–4 days | Extract SUTR data, define enum mappings, build script skeleton | 24 hrs |
+| **Phase 2: Development** | 1 week | Write migration logic per module, test on sample data | 60 hrs |
+| **Phase 3: Validation** | 3–4 days | Full dataset testing, reconciliation, rollback test | 32 hrs |
+| **Phase 4: Cutover** | 1 day | Production migration, validation, user access test | 12 hrs |
 
-**Total:** ~4 weeks, ~240 person-hours (roughly 1 FTE × 4 weeks)
+**Total:** ~3 weeks, ~152 person-hours (roughly 1 FTE × 3 weeks)
 
 ---
 
@@ -186,12 +154,7 @@ model ClinicalTemplate {
 **Recommendation:** `{LOCATION_CODE}-{YYYY}-{NNNNN}` (e.g., "SUC1-2025-00001")
 **Impact:** Format must be confirmed with business (affects PDF/reports)
 
-### Decision 4: Hemodialysis Fields
-**Question:** Confirm all 48 field names and definitions
-**Recommendation:** Extract from running SUTR DB + codebase grep
-**Impact:** Template accuracy affects data integrity
-
-### Decision 5: Go-Live Cutover
+### Decision 4: Go-Live Cutover
 **Question:** Hard cutover or parallel operation?
 **Recommendation:** 30–60 day parallel operation (SUTR live, Renalfy live, users slowly transitioned)
 **Impact:** Risk mitigation; user confidence; data validation
@@ -207,11 +170,11 @@ model ClinicalTemplate {
 - **Smooth transition.** We can run both systems in parallel for 30–60 days if needed.
 
 ### For Technical Leads
-- **4-week timeline.** Includes prep, dev, testing, validation, cutover.
+- **3-week timeline.** Includes prep, dev, testing, validation, cutover.
 - **1 FTE effort.** One full-time migration engineer + part-time support.
-- **Schema changes minimal.** Only 4 field additions; backward-compatible.
-- **Complexity is in data transformation.** Dialysis fields → JSON template requires careful extraction.
-- **Two critical validations:** (1) ID mapping, (2) cash close reconciliation.
+- **Schema changes minimal.** Only 2 model tweaks; backward-compatible.
+- **Complexity is standard.** Straightforward table-to-table mappings + multi-tenant layer + consent backfill.
+- **Two critical validations:** (1) ID mapping integrity, (2) cash close reconciliation.
 
 ### For the SUTR Team
 - **Your data is safe.** Encrypted backup taken; read-only copy used for testing.
@@ -224,33 +187,25 @@ model ClinicalTemplate {
 
 ### Immediate (This Week)
 1. **Schedule decisions meeting** with product, legal, and ops
-2. **Confirm five critical decisions** (see above)
-3. **Assign migration lead** (backend engineer, 1 FTE for 4 weeks)
+2. **Confirm four critical decisions** (see above)
+3. **Assign migration lead** (backend engineer, 1 FTE for 3 weeks)
 4. **Review this analysis** with team; flag questions
 
-### Week 1–2 (Sprint 27)
-1. Update Renalfy schema (Patient, Product, ClinicalTemplate docs)
-2. Extract SUTR DB schema + field mappings
-3. Define all enum mappings (roles, statuses, payment types)
-4. Build migration script skeleton
+### Week 1 (Sprint 28 start)
+1. Update Renalfy schema (Patient optional fields, Product status)
+2. Export SUTR data + define enum mappings (roles, statuses, payment types)
+3. Build migration script skeleton (TypeScript, connects both DBs)
 
-### Week 3–4 (Sprint 27–28)
-1. Develop full migration logic (per entity group)
+### Week 2 (Sprint 28)
+1. Develop full migration logic per module
 2. Test on sample SUTR data (100–200 rows per table)
-3. Validate data integrity + business logic
-4. Prepare for full-dataset migration
+3. Validate data integrity + business logic (folio gen, plan exhaustion, stock)
 
-### Week 5–6 (Sprint 28–29)
+### Week 3 (Sprint 29)
 1. Run migration on full SUTR production backup
 2. Comprehensive validation (referential integrity, row counts, reconciliation)
-3. Performance testing (time to migrate, DB size)
-4. Document rollback procedures
-
-### Week 7 (Sprint 30)
-1. Final stakeholder sign-off
-2. Production cutover (during maintenance window)
-3. Validation on live data
-4. User access testing
+3. Final stakeholder sign-off + rollback rehearsal
+4. Production cutover
 
 ---
 
@@ -323,17 +278,17 @@ A: Renalfy meets Mexican healthcare regulations (LFPDPPP, NOM-004, NOM-024). Aud
 
 **SUTR → Renalfy migration is feasible, low-risk, and critical for business continuity.**
 
-The main challenge is not the volume of data (25,000 rows is manageable) but the architectural shift (hardcoded fields → configurable JSON). We've designed a solution that:
+With the clinical data out of scope, this is a **well-scoped, low-risk data migration**. The solution:
 
-1. ✅ Preserves 100% of your data
+1. ✅ Preserves 100% of all data that was actually used
 2. ✅ Adds modern compliance features (consent, audit logs)
 3. ✅ Enables future growth (multi-location, configurable by specialty)
 4. ✅ Minimizes disruption (parallel operation possible)
 5. ✅ Has a tested rollback plan
 
-**Recommended timeline:** Sprint 27–30 (4 weeks start-to-finish, including cutover)
+**Recommended timeline:** Sprint 28–29 (3 weeks start-to-finish, including cutover)
 
-**Next meeting:** Confirm the five critical decisions, assign migration lead, review detailed technical docs.
+**Next meeting:** Confirm the four critical decisions, assign migration lead, review detailed technical docs.
 
 ---
 
