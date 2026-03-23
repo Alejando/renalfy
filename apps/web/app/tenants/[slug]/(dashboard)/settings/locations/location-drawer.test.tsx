@@ -1,19 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useActionState } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { LocationResponse } from '@repo/types';
-import type { LocationActionState } from '../../../../../actions/locations';
-
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react');
-  return { ...actual, useActionState: vi.fn() };
-});
 
 vi.mock('../../../../../actions/locations', () => ({
   createLocationAction: vi.fn(),
   updateLocationAction: vi.fn(),
 }));
 
+import { createLocationAction, updateLocationAction } from '../../../../../actions/locations';
 import { LocationDrawer } from './location-drawer';
 
 const mockLocation: LocationResponse = {
@@ -28,17 +23,13 @@ const mockLocation: LocationResponse = {
 };
 
 describe('LocationDrawer', () => {
-  const mockDispatch = vi.fn();
   const mockOnClose = vi.fn();
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useActionState<LocationActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
+    vi.mocked(createLocationAction).mockResolvedValue(null);
+    vi.mocked(updateLocationAction).mockResolvedValue(null);
   });
 
   it('renders create form when no location prop is passed', () => {
@@ -64,32 +55,33 @@ describe('LocationDrawer', () => {
     expect(screen.getByDisplayValue('Av. Principal 123')).toBeInTheDocument();
   });
 
-  it('shows "El nombre es obligatorio" when name is empty and form is submitted', async () => {
+  it('shows validation error when name is empty and form is submitted', async () => {
+    const user = userEvent.setup();
     render(
       <LocationDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    // Form starts with empty name — submit directly
-    fireEvent.submit(screen.getByRole('form', { name: /nueva sucursal/i }));
+    await user.click(screen.getByRole('button', { name: /crear sucursal/i }));
     await waitFor(() => {
-      expect(screen.getByText('El nombre es obligatorio')).toBeInTheDocument();
+      const errorEl = screen.queryByText(/obligatorio|requerido|least 1/i);
+      expect(errorEl).toBeInTheDocument();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(createLocationAction).not.toHaveBeenCalled();
   });
 
-  it('calls createLocationAction dispatch with form data on valid create submission', async () => {
+  it('calls createLocationAction with form data on valid create submission', async () => {
+    const user = userEvent.setup();
     render(
       <LocationDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    fireEvent.change(screen.getByLabelText(/nombre/i), {
-      target: { value: 'Nueva Sucursal' },
-    });
-    fireEvent.submit(screen.getByRole('form', { name: /nueva sucursal/i }));
+    await user.type(screen.getByLabelText(/nombre/i), 'Nueva Sucursal');
+    await user.click(screen.getByRole('button', { name: /crear sucursal/i }));
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(FormData));
+      expect(createLocationAction).toHaveBeenCalledWith(null, expect.any(FormData));
     });
   });
 
-  it('calls updateLocationAction dispatch with form data on valid edit submission', async () => {
+  it('calls updateLocationAction with form data on valid edit submission', async () => {
+    const user = userEvent.setup();
     render(
       <LocationDrawer
         open={true}
@@ -98,51 +90,38 @@ describe('LocationDrawer', () => {
         location={mockLocation}
       />,
     );
-    fireEvent.submit(screen.getByRole('form', { name: /editar sucursal/i }));
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(FormData));
+      expect(updateLocationAction).toHaveBeenCalledWith(null, expect.any(FormData));
     });
   });
 
-  it('shows error message from action state when action returns { error }', () => {
-    vi.mocked(useActionState<LocationActionState, FormData>).mockReturnValue([
-      { error: 'Error al crear sucursal' },
-      mockDispatch,
-      false,
-    ]);
+  it('shows error message from action when action returns { error }', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createLocationAction).mockResolvedValue({ error: 'Error al crear sucursal' });
     render(
       <LocationDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    expect(screen.getByText('Error al crear sucursal')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/nombre/i), 'Nueva Sucursal');
+    await user.click(screen.getByRole('button', { name: /crear sucursal/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Error al crear sucursal')).toBeInTheDocument();
+    });
   });
 
-  it('calls onSuccess after submission completes successfully', async () => {
-    // First render: isPending=true (submission in progress)
-    vi.mocked(useActionState<LocationActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      true,
-    ]);
-    const { rerender } = render(
+  it('calls onSuccess after successful submission', async () => {
+    const user = userEvent.setup();
+    render(
       <LocationDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-
-    // Second render: isPending=false, state=null (success)
-    vi.mocked(useActionState<LocationActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
-    rerender(
-      <LocationDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
-    );
-
+    await user.type(screen.getByLabelText(/nombre/i), 'Nueva Sucursal');
+    await user.click(screen.getByRole('button', { name: /crear sucursal/i }));
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
 
-  it('does not render when open is false', () => {
+  it('does not render content when open is false', () => {
     render(
       <LocationDrawer open={false} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );

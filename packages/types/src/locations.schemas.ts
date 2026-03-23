@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const CreateLocationSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, 'El nombre es obligatorio'),
   address: z.string().optional(),
   phone: z.string().optional(),
 });

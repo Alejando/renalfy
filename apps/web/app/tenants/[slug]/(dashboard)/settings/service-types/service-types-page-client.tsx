@@ -5,6 +5,16 @@ import type { ServiceTypeResponse } from '@repo/types';
 import { ServiceTypeDrawer } from './service-type-drawer';
 import { toggleServiceTypeStatusAction } from '../../../../../actions/service-types';
 import { EmptyState } from '../../../../../components/empty-state';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ServiceTypesPageClientProps {
   serviceTypes: ServiceTypeResponse[];
@@ -15,10 +25,8 @@ const STATUS_LABELS: Record<string, string> = {
   INACTIVE: 'Inactivo',
 };
 
-const STATUS_CLASSES: Record<string, string> = {
-  ACTIVE: 'bg-primary/10 text-primary',
-  INACTIVE: 'bg-surface-container-high text-secondary',
-};
+const TABLE_HEAD_CLASS =
+  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
 
 function formatPrice(price: number | null): string {
   if (price === null) return '—';
@@ -26,6 +34,10 @@ function formatPrice(price: number | null): string {
     style: 'currency',
     currency: 'MXN',
   }).format(price);
+}
+
+function getStatusVariant(status: string): 'status-active' | 'status-inactive' {
+  return status === 'ACTIVE' ? 'status-active' : 'status-inactive';
 }
 
 export function ServiceTypesPageClient({ serviceTypes }: ServiceTypesPageClientProps) {
@@ -69,14 +81,9 @@ export function ServiceTypesPageClient({ serviceTypes }: ServiceTypesPageClientP
             Configura los servicios que ofrece tu clínica
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10"
-          style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-        >
+        <Button variant="gradient" onClick={openCreate}>
           + Nuevo tipo de servicio
-        </button>
+        </Button>
       </div>
 
       {/* Table or empty state */}
@@ -85,81 +92,61 @@ export function ServiceTypesPageClient({ serviceTypes }: ServiceTypesPageClientP
           title="Sin tipos de servicio aún"
           description="Crea el primer tipo de servicio para comenzar a gestionar tus sesiones."
           action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm shadow-md shadow-primary/10"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-            >
+            <Button variant="gradient" onClick={openCreate}>
               + Nuevo tipo de servicio
-            </button>
+            </Button>
           }
         />
       ) : (
-        <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-low">
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Nombre
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold hidden md:table-cell">
+        <div className="rounded-xl overflow-hidden border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className={TABLE_HEAD_CLASS}>Nombre</TableHead>
+                <TableHead className={`${TABLE_HEAD_CLASS} hidden md:table-cell`}>
                   Descripción
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Precio
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Estado
-                </th>
-                <th className="text-right px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Precio</TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Estado</TableHead>
+                <TableHead className={`${TABLE_HEAD_CLASS} text-right`}>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {serviceTypes.map((serviceType) => (
-                <tr
-                  key={serviceType.id}
-                  className="hover:bg-surface-container-low/50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-on-surface font-medium">{serviceType.name}</td>
-                  <td className="px-6 py-4 text-secondary text-sm hidden md:table-cell">
+                <TableRow key={serviceType.id}>
+                  <TableCell className="text-foreground font-medium">
+                    {serviceType.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
                     {serviceType.description ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 text-secondary text-sm">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
                     {formatPrice(serviceType.price)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold font-label ${STATUS_CLASSES[serviceType.status] ?? ''}`}
-                    >
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(serviceType.status)}>
                       {STATUS_LABELS[serviceType.status] ?? serviceType.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(serviceType)}
-                        className="text-sm text-primary font-semibold hover:underline decoration-2 underline-offset-2"
-                      >
+                      <Button variant="link" size="sm" onClick={() => openEdit(serviceType)}>
                         Editar
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleStatus(serviceType)}
                         disabled={isPending}
-                        className="text-sm text-secondary font-semibold hover:text-on-surface transition-colors disabled:opacity-50"
                       >
                         {serviceType.status === 'ACTIVE' ? 'Desactivar' : 'Activar'}
-                      </button>
+                      </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

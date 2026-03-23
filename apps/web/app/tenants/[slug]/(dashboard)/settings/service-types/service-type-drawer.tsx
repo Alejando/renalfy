@@ -1,12 +1,30 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
+import { CreateServiceTypeSchema, UpdateServiceTypeSchema } from '@repo/types';
 import type { ServiceTypeResponse } from '@repo/types';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import {
   createServiceTypeAction,
   updateServiceTypeAction,
-  type ServiceTypeActionState,
 } from '../../../../../actions/service-types';
+
+type CreateFormValues = z.infer<typeof CreateServiceTypeSchema>;
+type UpdateFormValues = z.infer<typeof UpdateServiceTypeSchema>;
+type FormValues = CreateFormValues | UpdateFormValues;
 
 interface ServiceTypeDrawerProps {
   open: boolean;
@@ -15,6 +33,9 @@ interface ServiceTypeDrawerProps {
   serviceType?: ServiceTypeResponse;
 }
 
+const LABEL_CLASS =
+  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+
 export function ServiceTypeDrawer({
   open,
   onClose,
@@ -22,182 +43,169 @@ export function ServiceTypeDrawer({
   serviceType,
 }: ServiceTypeDrawerProps) {
   const isEdit = serviceType !== undefined;
-  const action = isEdit ? updateServiceTypeAction : createServiceTypeAction;
+  const schema = isEdit ? UpdateServiceTypeSchema : CreateServiceTypeSchema;
 
-  const [state, dispatch, isPending] = useActionState<ServiceTypeActionState, FormData>(
-    action,
-    null,
-  );
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: serviceType
+      ? {
+          name: serviceType.name,
+          description: serviceType.description ?? '',
+          price: serviceType.price ?? undefined,
+        }
+      : { name: '', description: '', price: undefined },
+  });
 
-  const [nameError, setNameError] = useState('');
-  const prevPendingRef = useRef(false);
-
-  // Detect successful submission
   useEffect(() => {
-    if (prevPendingRef.current && !isPending && state === null) {
-      onSuccess();
+    if (!open) {
+      reset(
+        serviceType
+          ? {
+              name: serviceType.name,
+              description: serviceType.description ?? '',
+              price: serviceType.price ?? undefined,
+            }
+          : { name: '', description: '', price: undefined },
+      );
     }
-    prevPendingRef.current = isPending;
-  }, [isPending, state, onSuccess]);
+  }, [open, serviceType, reset]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = (formData.get('name') as string) ?? '';
-    if (!name.trim()) {
-      setNameError('El nombre es obligatorio');
-      return;
+  const onInvalid = (fieldErrors: FieldErrors<FormValues>) => {
+    for (const [field, error] of Object.entries(fieldErrors)) {
+      if (error?.message) {
+        setError(field as keyof FormValues, { type: String(error.type ?? 'manual'), message: error.message });
+      }
     }
-    setNameError('');
-    dispatch(formData);
   };
 
-  if (!open) return null;
+  const onSubmit = async (data: FormValues) => {
+    const formData = new FormData();
+    if (isEdit && serviceType) {
+      formData.append('id', serviceType.id);
+    }
+    if (data.name) {
+      formData.append('name', data.name);
+    }
+    if (data.description) {
+      formData.append('description', data.description);
+    }
+    if (data.price !== undefined && data.price !== null) {
+      formData.append('price', String(data.price));
+    }
+
+    const result = isEdit
+      ? await updateServiceTypeAction(null, formData)
+      : await createServiceTypeAction(null, formData);
+
+    if (result?.error) {
+      setError('root', { message: result.error });
+      return;
+    }
+    onSuccess();
+  };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-inverse-surface/20 backdrop-blur-[2px] z-40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen: boolean) => {
+        if (!isOpen) {
+          onClose();
+        }
+      }}
+    >
+      <SheetContent side="right" className="w-full max-w-md flex flex-col p-0">
+        <SheetHeader className="px-8 py-6 bg-muted">
+          <SheetTitle className="font-headline font-bold text-xl">
+            {isEdit ? 'Editar tipo de servicio' : 'Nuevo tipo de servicio'}
+          </SheetTitle>
+          <SheetDescription>
+            {isEdit
+              ? 'Modifica los datos del tipo de servicio'
+              : 'Agrega un nuevo tipo de servicio a tu clínica'}
+          </SheetDescription>
+        </SheetHeader>
 
-      {/* Drawer panel */}
-      <aside
-        aria-label={isEdit ? 'Editar tipo de servicio' : 'Nuevo tipo de servicio'}
-        role="dialog"
-        aria-modal="true"
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-surface-container-lowest shadow-2xl z-50 flex flex-col"
-      >
-        {/* Header */}
-        <div className="px-8 py-6 bg-surface-container-low flex items-center justify-between">
-          <div>
-            <h2 className="font-headline font-bold text-xl text-on-surface">
-              {isEdit ? 'Editar tipo de servicio' : 'Nuevo tipo de servicio'}
-            </h2>
-            <p className="text-secondary text-sm mt-0.5">
-              {isEdit
-                ? 'Modifica los datos del tipo de servicio'
-                : 'Agrega un nuevo tipo de servicio a tu clínica'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar panel"
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-secondary hover:text-on-surface"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Server error banner */}
-        {state?.error && (
-          <div className="mx-8 mt-6 p-3 bg-error-container rounded-lg">
-            <p className="text-on-error-container text-sm font-medium">{state.error}</p>
+        {errors.root && (
+          <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
+            <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
           </div>
         )}
 
-        {/* Form */}
         <form
           aria-label={isEdit ? 'Editar tipo de servicio' : 'Nuevo tipo de servicio'}
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
           className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
         >
-          {isEdit && <input type="hidden" name="id" value={serviceType.id} />}
-
           {/* Nombre */}
           <div className="space-y-2">
-            <label
-              htmlFor="st-name"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Nombre <span className="text-error">*</span>
-            </label>
-            <input
+            <Label htmlFor="st-name" className={LABEL_CLASS}>
+              Nombre <span className="text-destructive">*</span>
+            </Label>
+            <Input
               id="st-name"
-              name="name"
               type="text"
-              defaultValue={serviceType?.name ?? ''}
               placeholder="Ej. Hemodiálisis"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              {...register('name')}
             />
-            {nameError && <p className="text-error text-xs font-medium">{nameError}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
           </div>
 
           {/* Descripción */}
           <div className="space-y-2">
-            <label
-              htmlFor="st-description"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
+            <Label htmlFor="st-description" className={LABEL_CLASS}>
               Descripción
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id="st-description"
-              name="description"
               rows={3}
-              defaultValue={serviceType?.description ?? ''}
               placeholder="Descripción opcional del servicio"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+              {...register('description')}
             />
           </div>
 
           {/* Precio */}
           <div className="space-y-2">
-            <label
-              htmlFor="st-price"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
+            <Label htmlFor="st-price" className={LABEL_CLASS}>
               Precio (MXN)
-            </label>
-            <input
+            </Label>
+            <Input
               id="st-price"
-              name="price"
               type="number"
               step="0.01"
               min="0"
-              defaultValue={serviceType?.price ?? ''}
               placeholder="Ej. 1500.00"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              {...register('price', { setValueAs: (v: string) => (v === '' ? undefined : parseFloat(v)) })}
             />
           </div>
 
           {/* Actions */}
           <div className="pt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors"
-            >
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isPending}
-              className="flex-1 py-3 rounded-md text-on-primary font-bold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
+              variant="gradient"
+              disabled={isSubmitting}
+              className="flex-1"
             >
-              {isPending
+              {isSubmitting
                 ? 'Guardando…'
                 : isEdit
                   ? 'Guardar cambios'
                   : 'Crear tipo de servicio'}
-            </button>
+            </Button>
           </div>
         </form>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

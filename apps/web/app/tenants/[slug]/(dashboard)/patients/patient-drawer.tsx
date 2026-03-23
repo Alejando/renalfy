@@ -1,12 +1,30 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { useForm, type FieldErrors, type Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
+import { CreatePatientSchema, UpdatePatientSchema } from '@repo/types';
 import type { LocationResponse, PatientResponse, UserRole } from '@repo/types';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import {
   createPatientAction,
   updatePatientAction,
-  type PatientActionState,
 } from '../../../../actions/patients';
+
+type CreateFormValues = z.infer<typeof CreatePatientSchema>;
+type UpdateFormValues = z.infer<typeof UpdatePatientSchema>;
 
 interface PatientDrawerProps {
   open: boolean;
@@ -26,6 +44,417 @@ const CONSENT_TYPE_LABELS: Record<string, string> = {
 
 const REQUIRES_LOCATION_SELECTOR: UserRole[] = ['OWNER', 'ADMIN'];
 
+const LABEL_CLASS =
+  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+
+const SELECT_CLASS =
+  'w-full bg-input border border-border rounded-md px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 transition-all appearance-none';
+
+interface CreatePatientFormProps {
+  onClose: () => void;
+  onSuccess: () => void;
+  locations: LocationResponse[];
+  userRole: UserRole;
+  userLocationId: string | null;
+}
+
+function CreatePatientForm({
+  onClose,
+  onSuccess,
+  locations,
+  userRole,
+  userLocationId,
+}: CreatePatientFormProps) {
+  const showLocationSelector = REQUIRES_LOCATION_SELECTOR.includes(userRole);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateFormValues>({
+    resolver: zodResolver(CreatePatientSchema) as Resolver<CreateFormValues>,
+    defaultValues: {
+      name: '',
+      locationId: userLocationId ?? '',
+      phone: '',
+      mobile: '',
+      address: '',
+      notes: '',
+      consent: { type: undefined, version: '1.0' },
+    },
+  });
+
+  const onInvalid = (fieldErrors: FieldErrors<CreateFormValues>) => {
+    for (const [field, error] of Object.entries(fieldErrors)) {
+      if (error?.message) {
+        setError(field as keyof CreateFormValues, { type: String(error.type ?? 'manual'), message: error.message });
+      } else if (typeof error === 'object' && error !== null) {
+        for (const [subField, subError] of Object.entries(error as Record<string, { message?: string; type?: string }>)) {
+          if (subError?.message) {
+            setError(`${field}.${subField}` as keyof CreateFormValues, { type: String(subError.type ?? 'manual'), message: subError.message });
+          }
+        }
+      }
+    }
+  };
+
+  const onSubmit = async (data: CreateFormValues) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('locationId', data.locationId);
+    if (data.birthDate) {
+      formData.append('birthDate', data.birthDate.toISOString().substring(0, 10));
+    }
+    if (data.phone) {
+      formData.append('phone', data.phone);
+    }
+    if (data.mobile) {
+      formData.append('mobile', data.mobile);
+    }
+    if (data.address) {
+      formData.append('address', data.address);
+    }
+    if (data.notes) {
+      formData.append('notes', data.notes);
+    }
+    formData.append('consent.type', data.consent.type);
+    formData.append('consent.version', data.consent.version);
+
+    const result = await createPatientAction(null, formData);
+    if (result?.error) {
+      setError('root', { message: result.error });
+      return;
+    }
+    onSuccess();
+  };
+
+  return (
+    <>
+      {errors.root && (
+        <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
+          <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
+        </div>
+      )}
+      <form
+        aria-label="Nuevo paciente"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
+      >
+        {/* Nombre */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-name" className={LABEL_CLASS}>
+            Nombre <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="patient-name"
+            type="text"
+            placeholder="Nombre completo del paciente"
+            {...register('name')}
+          />
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          )}
+        </div>
+
+        {/* Location selector — OWNER/ADMIN */}
+        {showLocationSelector ? (
+          <div className="space-y-2">
+            <Label htmlFor="patient-location" className={LABEL_CLASS}>
+              Sucursal <span className="text-destructive">*</span>
+            </Label>
+            <select
+              id="patient-location"
+              className={SELECT_CLASS}
+              {...register('locationId')}
+            >
+              <option value="" disabled>
+                Selecciona una sucursal
+              </option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
+            {errors.locationId && (
+              <p className="text-sm text-destructive">{errors.locationId.message}</p>
+            )}
+          </div>
+        ) : (
+          userLocationId && (
+            <input type="hidden" {...register('locationId')} value={userLocationId} />
+          )
+        )}
+
+        {/* Birth date */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-birthdate" className={LABEL_CLASS}>
+            Fecha de nacimiento
+          </Label>
+          <Input id="patient-birthdate" type="date" {...register('birthDate')} />
+        </div>
+
+        {/* Phone */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-phone" className={LABEL_CLASS}>
+            Teléfono
+          </Label>
+          <Input
+            id="patient-phone"
+            type="tel"
+            placeholder="Ej. 555-123-4567"
+            {...register('phone')}
+          />
+        </div>
+
+        {/* Mobile */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-mobile" className={LABEL_CLASS}>
+            Celular
+          </Label>
+          <Input
+            id="patient-mobile"
+            type="tel"
+            placeholder="Ej. 555-987-6543"
+            {...register('mobile')}
+          />
+        </div>
+
+        {/* Address */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-address" className={LABEL_CLASS}>
+            Dirección
+          </Label>
+          <Input
+            id="patient-address"
+            type="text"
+            placeholder="Ej. Av. Principal 123, Col. Centro"
+            {...register('address')}
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-notes" className={LABEL_CLASS}>
+            Notas
+          </Label>
+          <Textarea
+            id="patient-notes"
+            rows={3}
+            placeholder="Observaciones adicionales..."
+            {...register('notes')}
+          />
+        </div>
+
+        {/* Consent section */}
+        <div className="space-y-4 pt-2">
+          <Separator />
+          <p className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold pt-2">
+            Consentimiento
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="patient-consent-type" className={LABEL_CLASS}>
+              Tipo de consentimiento <span className="text-destructive">*</span>
+            </Label>
+            <select
+              id="patient-consent-type"
+              className={SELECT_CLASS}
+              defaultValue=""
+              {...register('consent.type')}
+            >
+              <option value="" disabled>
+                Selecciona tipo
+              </option>
+              {Object.entries(CONSENT_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            {errors.consent?.type && (
+              <p className="text-sm text-destructive">{errors.consent.type.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="patient-consent-version" className={LABEL_CLASS}>
+              Versión
+            </Label>
+            <Input
+              id="patient-consent-version"
+              type="text"
+              placeholder="Ej. 1.0"
+              {...register('consent.version')}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="pt-4 flex gap-3">
+          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">
+            {isSubmitting ? 'Guardando…' : 'Crear paciente'}
+          </Button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+interface EditPatientFormProps {
+  patient: PatientResponse;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditPatientForm({ patient, onClose, onSuccess }: EditPatientFormProps) {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<UpdateFormValues>({
+    resolver: zodResolver(UpdatePatientSchema),
+    defaultValues: {
+      phone: patient.phone ?? '',
+      mobile: patient.mobile ?? '',
+      address: patient.address ?? '',
+      notes: patient.notes ?? '',
+    },
+  });
+
+  useEffect(() => {
+    reset({
+      phone: patient.phone ?? '',
+      mobile: patient.mobile ?? '',
+      address: patient.address ?? '',
+      notes: patient.notes ?? '',
+    });
+  }, [patient, reset]);
+
+  const onInvalid = (fieldErrors: FieldErrors<UpdateFormValues>) => {
+    for (const [field, error] of Object.entries(fieldErrors)) {
+      if (error?.message) {
+        setError(field as keyof UpdateFormValues, { type: String(error.type ?? 'manual'), message: error.message });
+      }
+    }
+  };
+
+  const onSubmit = async (data: UpdateFormValues) => {
+    const formData = new FormData();
+    formData.append('id', patient.id);
+    if (data.phone) {
+      formData.append('phone', data.phone);
+    }
+    if (data.mobile) {
+      formData.append('mobile', data.mobile);
+    }
+    if (data.address) {
+      formData.append('address', data.address);
+    }
+    if (data.notes) {
+      formData.append('notes', data.notes);
+    }
+
+    const result = await updatePatientAction(null, formData);
+    if (result?.error) {
+      setError('root', { message: result.error });
+      return;
+    }
+    onSuccess();
+  };
+
+  return (
+    <>
+      {errors.root && (
+        <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
+          <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
+        </div>
+      )}
+      <form
+        aria-label="Editar paciente"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
+      >
+        {/* Name — read-only in edit mode */}
+        <div className="space-y-1">
+          <p className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold">
+            Nombre
+          </p>
+          <p className="text-foreground font-medium">{patient.name}</p>
+        </div>
+
+        {/* Phone */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-phone" className={LABEL_CLASS}>
+            Teléfono
+          </Label>
+          <Input
+            id="patient-phone"
+            type="tel"
+            placeholder="Ej. 555-123-4567"
+            {...register('phone')}
+          />
+        </div>
+
+        {/* Mobile */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-mobile" className={LABEL_CLASS}>
+            Celular
+          </Label>
+          <Input
+            id="patient-mobile"
+            type="tel"
+            placeholder="Ej. 555-987-6543"
+            {...register('mobile')}
+          />
+        </div>
+
+        {/* Address */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-address" className={LABEL_CLASS}>
+            Dirección
+          </Label>
+          <Input
+            id="patient-address"
+            type="text"
+            placeholder="Ej. Av. Principal 123, Col. Centro"
+            {...register('address')}
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label htmlFor="patient-notes" className={LABEL_CLASS}>
+            Notas
+          </Label>
+          <Textarea
+            id="patient-notes"
+            rows={3}
+            placeholder="Observaciones adicionales..."
+            {...register('notes')}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="pt-4 flex gap-3">
+          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">
+            {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+        </div>
+      </form>
+    </>
+  );
+}
+
 export function PatientDrawer({
   open,
   onClose,
@@ -36,364 +465,40 @@ export function PatientDrawer({
   userLocationId,
 }: PatientDrawerProps) {
   const isEdit = patient !== undefined;
-  const action = isEdit ? updatePatientAction : createPatientAction;
-
-  const [state, dispatch, isPending] = useActionState<PatientActionState, FormData>(
-    action,
-    null,
-  );
-
-  const [nameError, setNameError] = useState('');
-  const [consentError, setConsentError] = useState('');
-  const [locationError, setLocationError] = useState('');
-  const [consentType, setConsentType] = useState('');
-  const prevPendingRef = useRef(false);
-
-  const showLocationSelector = REQUIRES_LOCATION_SELECTOR.includes(userRole);
-
-  // Detect successful submission
-  useEffect(() => {
-    if (prevPendingRef.current && !isPending && state === null) {
-      onSuccess();
-    }
-    prevPendingRef.current = isPending;
-  }, [isPending, state, onSuccess]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    let hasError = false;
-
-    if (!isEdit) {
-      const name = (formData.get('name') as string) ?? '';
-      if (!name.trim()) {
-        setNameError('El nombre es obligatorio');
-        hasError = true;
-      } else {
-        setNameError('');
-      }
-
-      const consent = (formData.get('consent.type') as string) ?? '';
-      if (!consent) {
-        setConsentError('El consentimiento es obligatorio');
-        hasError = true;
-      } else {
-        setConsentError('');
-      }
-
-      if (showLocationSelector) {
-        const locationId = (formData.get('locationId') as string) ?? '';
-        if (!locationId) {
-          setLocationError('La sucursal es obligatoria');
-          hasError = true;
-        } else {
-          setLocationError('');
-        }
-      }
-    }
-
-    if (hasError) return;
-
-    dispatch(formData);
-  };
-
-  if (!open) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-inverse-surface/20 backdrop-blur-[2px] z-40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen: boolean) => {
+        if (!isOpen) {
+          onClose();
+        }
+      }}
+    >
+      <SheetContent side="right" className="w-full max-w-md flex flex-col p-0">
+        <SheetHeader className="px-8 py-6 bg-muted">
+          <SheetTitle className="font-headline font-bold text-xl">
+            {isEdit ? 'Editar paciente' : 'Nuevo paciente'}
+          </SheetTitle>
+          <SheetDescription>
+            {isEdit
+              ? 'Actualiza los datos de contacto del paciente'
+              : 'Registra un nuevo paciente en el sistema'}
+          </SheetDescription>
+        </SheetHeader>
 
-      {/* Drawer panel */}
-      <aside
-        aria-label={isEdit ? 'Editar paciente' : 'Nuevo paciente'}
-        role="dialog"
-        aria-modal="true"
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-surface-container-lowest shadow-2xl z-50 flex flex-col"
-      >
-        {/* Header */}
-        <div className="px-8 py-6 bg-surface-container-low flex items-center justify-between">
-          <div>
-            <h2 className="font-headline font-bold text-xl text-on-surface">
-              {isEdit ? 'Editar paciente' : 'Nuevo paciente'}
-            </h2>
-            <p className="text-secondary text-sm mt-0.5">
-              {isEdit
-                ? 'Actualiza los datos de contacto del paciente'
-                : 'Registra un nuevo paciente en el sistema'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar panel"
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-secondary hover:text-on-surface"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Server error banner */}
-        {state?.error && (
-          <div className="mx-8 mt-6 p-3 bg-error-container rounded-lg">
-            <p className="text-on-error-container text-sm font-medium">{state.error}</p>
-          </div>
+        {isEdit ? (
+          <EditPatientForm patient={patient} onClose={onClose} onSuccess={onSuccess} />
+        ) : (
+          <CreatePatientForm
+            onClose={onClose}
+            onSuccess={onSuccess}
+            locations={locations}
+            userRole={userRole}
+            userLocationId={userLocationId}
+          />
         )}
-
-        {/* Form */}
-        <form
-          aria-label={isEdit ? 'Editar paciente' : 'Nuevo paciente'}
-          onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
-        >
-          {isEdit && <input type="hidden" name="id" value={patient.id} />}
-
-          {isEdit ? (
-            /* Edit mode: name is read-only text */
-            <div className="space-y-1">
-              <p className="text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                Nombre
-              </p>
-              <p className="text-on-surface font-medium">{patient.name}</p>
-            </div>
-          ) : (
-            /* Create mode: name input */
-            <div className="space-y-2">
-              <label
-                htmlFor="patient-name"
-                className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-              >
-                Nombre <span className="text-error">*</span>
-              </label>
-              <input
-                id="patient-name"
-                name="name"
-                type="text"
-                placeholder="Nombre completo del paciente"
-                className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-              {nameError && <p className="text-error text-xs font-medium">{nameError}</p>}
-            </div>
-          )}
-
-          {/* Location selector — create mode only, OWNER/ADMIN */}
-          {!isEdit && showLocationSelector && (
-            <div className="space-y-2">
-              <label
-                htmlFor="patient-location"
-                className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-              >
-                Sucursal <span className="text-error">*</span>
-              </label>
-              <select
-                id="patient-location"
-                name="locationId"
-                defaultValue=""
-                className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                <option value="" disabled>
-                  Selecciona una sucursal
-                </option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              {locationError && (
-                <p className="text-error text-xs font-medium">{locationError}</p>
-              )}
-            </div>
-          )}
-
-          {/* Location hidden for MANAGER/STAFF */}
-          {!isEdit && !showLocationSelector && userLocationId && (
-            <input type="hidden" name="locationId" value={userLocationId} />
-          )}
-
-          {/* Birth date — create only */}
-          {!isEdit && (
-            <div className="space-y-2">
-              <label
-                htmlFor="patient-birthdate"
-                className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-              >
-                Fecha de nacimiento
-              </label>
-              <input
-                id="patient-birthdate"
-                name="birthDate"
-                type="date"
-                className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
-          )}
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <label
-              htmlFor="patient-phone"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Teléfono
-            </label>
-            <input
-              id="patient-phone"
-              name="phone"
-              type="tel"
-              defaultValue={patient?.phone ?? ''}
-              placeholder="Ej. 555-123-4567"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          {/* Mobile */}
-          <div className="space-y-2">
-            <label
-              htmlFor="patient-mobile"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Celular
-            </label>
-            <input
-              id="patient-mobile"
-              name="mobile"
-              type="tel"
-              defaultValue={patient?.mobile ?? ''}
-              placeholder="Ej. 555-987-6543"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          {/* Address */}
-          <div className="space-y-2">
-            <label
-              htmlFor="patient-address"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Dirección
-            </label>
-            <input
-              id="patient-address"
-              name="address"
-              type="text"
-              defaultValue={patient?.address ?? ''}
-              placeholder="Ej. Av. Principal 123, Col. Centro"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <label
-              htmlFor="patient-notes"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Notas
-            </label>
-            <textarea
-              id="patient-notes"
-              name="notes"
-              rows={3}
-              defaultValue={patient?.notes ?? ''}
-              placeholder="Observaciones adicionales..."
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-            />
-          </div>
-
-          {/* Consent section — create mode only */}
-          {!isEdit && (
-            <div className="space-y-4 pt-2 border-t border-outline-variant">
-              <p className="text-[10px] font-label uppercase tracking-widest text-secondary font-semibold pt-2">
-                Consentimiento
-              </p>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="patient-consent-type"
-                  className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-                >
-                  Tipo de consentimiento <span className="text-error">*</span>
-                </label>
-                <select
-                  id="patient-consent-type"
-                  name="consent.type"
-                  value={consentType}
-                  onChange={(e) => setConsentType(e.target.value)}
-                  className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                >
-                  <option value="" disabled>
-                    Selecciona tipo
-                  </option>
-                  {Object.entries(CONSENT_TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                {consentError && (
-                  <p className="text-error text-xs font-medium">{consentError}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="patient-consent-version"
-                  className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-                >
-                  Versión
-                </label>
-                <input
-                  id="patient-consent-version"
-                  name="consent.version"
-                  type="text"
-                  defaultValue="1.0"
-                  placeholder="Ej. 1.0"
-                  className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="pt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex-1 py-3 rounded-md text-on-primary font-bold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-            >
-              {isPending
-                ? 'Guardando…'
-                : isEdit
-                  ? 'Guardar cambios'
-                  : 'Crear paciente'}
-            </button>
-          </div>
-        </form>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

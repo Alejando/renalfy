@@ -9,15 +9,18 @@ export const CreateUserSchema = z
     email: z.string().email(),
     password: z.string().min(8),
     role: UserRoleSchema,
-    locationId: z.string().uuid().optional(),
+    locationId: z.preprocess(
+      (val) => (val === '' ? undefined : val),
+      z.string().uuid().optional(),
+    ),
     phone: z.string().optional(),
   })
   .refine(
     (data) => {
       const requiresLocation = (MANAGER_STAFF_ROLES as readonly string[]).includes(data.role);
-      return !requiresLocation || data.locationId !== undefined;
+      return !requiresLocation || (data.locationId !== undefined && data.locationId !== '');
     },
-    { message: 'locationId is required for MANAGER and STAFF roles', path: ['locationId'] },
+    { message: 'La sucursal es obligatoria para los roles Gerente y Personal', path: ['locationId'] },
   );
 
 export const UpdateUserSchema = z.object({

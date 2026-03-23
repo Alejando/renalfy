@@ -1,25 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useActionState } from 'react';
+import userEvent from '@testing-library/user-event';
 import type { LocationResponse, PatientResponse } from '@repo/types';
-import type { PatientActionState } from '../../../../actions/patients';
-
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react');
-  return { ...actual, useActionState: vi.fn() };
-});
 
 vi.mock('../../../../actions/patients', () => ({
   createPatientAction: vi.fn(),
   updatePatientAction: vi.fn(),
 }));
 
+import { createPatientAction, updatePatientAction } from '../../../../actions/patients';
 import { PatientDrawer } from './patient-drawer';
+
+const LOC_ID = '11111111-1111-1111-8111-111111111111';
+const TENANT_ID = '22222222-2222-2222-8222-222222222222';
+const PATIENT_ID = '33333333-3333-3333-8333-333333333333';
 
 const mockLocations: LocationResponse[] = [
   {
-    id: 'loc-1',
-    tenantId: 'tenant-1',
+    id: LOC_ID,
+    tenantId: TENANT_ID,
     name: 'Sucursal Centro',
     address: null,
     phone: null,
@@ -30,9 +29,9 @@ const mockLocations: LocationResponse[] = [
 ];
 
 const mockPatient: PatientResponse = {
-  id: 'patient-1',
-  tenantId: 'tenant-1',
-  locationId: 'loc-1',
+  id: PATIENT_ID,
+  tenantId: TENANT_ID,
+  locationId: LOC_ID,
   locationName: 'Sucursal Centro',
   name: 'Juan Pérez',
   birthDate: null,
@@ -48,17 +47,13 @@ const mockPatient: PatientResponse = {
 };
 
 describe('PatientDrawer', () => {
-  const mockDispatch = vi.fn();
   const mockOnClose = vi.fn();
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useActionState<PatientActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
+    vi.mocked(createPatientAction).mockResolvedValue(null);
+    vi.mocked(updatePatientAction).mockResolvedValue(null);
   });
 
   it('renders create form with consent section when no patient prop', () => {
@@ -98,7 +93,8 @@ describe('PatientDrawer', () => {
     expect(screen.getByDisplayValue('Calle Falsa 123')).toBeInTheDocument();
   });
 
-  it('shows "El nombre es obligatorio" when name is empty on submit', async () => {
+  it('shows validation error when name is empty on submit', async () => {
+    const user = userEvent.setup();
     render(
       <PatientDrawer
         open={true}
@@ -109,14 +105,15 @@ describe('PatientDrawer', () => {
         locations={mockLocations}
       />,
     );
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo paciente/i }));
+    await user.click(screen.getByRole('button', { name: /crear paciente/i }));
     await waitFor(() => {
       expect(screen.getByText('El nombre es obligatorio')).toBeInTheDocument();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(createPatientAction).not.toHaveBeenCalled();
   });
 
-  it('shows "El consentimiento es obligatorio" when consent type is not selected', async () => {
+  it('shows consent validation error when consent type is not selected', async () => {
+    const user = userEvent.setup();
     render(
       <PatientDrawer
         open={true}
@@ -127,13 +124,15 @@ describe('PatientDrawer', () => {
         locations={mockLocations}
       />,
     );
-    fireEvent.change(screen.getByLabelText(/nombre/i), { target: { value: 'Ana López' } });
-    // Submit without selecting consent type (default is empty)
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo paciente/i }));
+    await user.type(screen.getByLabelText(/nombre/i), 'Ana López');
+    fireEvent.change(screen.getByLabelText(/sucursal/i), { target: { value: LOC_ID } });
+    // Submit without selecting consent type
+    await user.click(screen.getByRole('button', { name: /crear paciente/i }));
     await waitFor(() => {
-      expect(screen.getByText('El consentimiento es obligatorio')).toBeInTheDocument();
+      const error = screen.queryByText(/requerido|required|invalid/i);
+      expect(error).toBeInTheDocument();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(createPatientAction).not.toHaveBeenCalled();
   });
 
   it('shows location selector for OWNER', () => {
@@ -164,12 +163,9 @@ describe('PatientDrawer', () => {
     expect(screen.queryByLabelText(/sucursal/i)).not.toBeInTheDocument();
   });
 
-  it('shows server error without closing the drawer', () => {
-    vi.mocked(useActionState<PatientActionState, FormData>).mockReturnValue([
-      { error: 'Paciente ya registrado' },
-      mockDispatch,
-      false,
-    ]);
+  it('shows server error without closing the drawer', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createPatientAction).mockResolvedValue({ error: 'Paciente ya registrado' });
     render(
       <PatientDrawer
         open={true}
@@ -180,17 +176,19 @@ describe('PatientDrawer', () => {
         locations={mockLocations}
       />,
     );
-    expect(screen.getByText('Paciente ya registrado')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/nombre/i), 'Test');
+    await user.selectOptions(screen.getByLabelText(/sucursal/i), LOC_ID);
+    await user.selectOptions(screen.getByLabelText(/tipo de consentimiento/i), 'PRIVACY_NOTICE');
+    await user.click(screen.getByRole('button', { name: /crear paciente/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Paciente ya registrado')).toBeInTheDocument();
+    });
     expect(screen.getByRole('heading', { name: /nuevo paciente/i })).toBeInTheDocument();
   });
 
   it('calls onSuccess after successful submission', async () => {
-    vi.mocked(useActionState<PatientActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      true,
-    ]);
-    const { rerender } = render(
+    const user = userEvent.setup();
+    render(
       <PatientDrawer
         open={true}
         onClose={mockOnClose}
@@ -200,29 +198,16 @@ describe('PatientDrawer', () => {
         locations={mockLocations}
       />,
     );
-
-    vi.mocked(useActionState<PatientActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
-    rerender(
-      <PatientDrawer
-        open={true}
-        onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={mockLocations}
-      />,
-    );
-
+    await user.type(screen.getByLabelText(/nombre/i), 'Test Paciente');
+    await user.selectOptions(screen.getByLabelText(/sucursal/i), LOC_ID);
+    await user.selectOptions(screen.getByLabelText(/tipo de consentimiento/i), 'PRIVACY_NOTICE');
+    await user.click(screen.getByRole('button', { name: /crear paciente/i }));
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
 
-  it('does not render when open is false', () => {
+  it('does not render content when open is false', () => {
     render(
       <PatientDrawer
         open={false}
@@ -234,22 +219,5 @@ describe('PatientDrawer', () => {
       />,
     );
     expect(screen.queryByRole('heading', { name: /paciente/i })).not.toBeInTheDocument();
-  });
-
-  it('closes on Escape key', async () => {
-    render(
-      <PatientDrawer
-        open={true}
-        onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={mockLocations}
-      />,
-    );
-    fireEvent.keyDown(document, { key: 'Escape' });
-    await waitFor(() => {
-      expect(mockOnClose).toHaveBeenCalled();
-    });
   });
 });

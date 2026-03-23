@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ServiceTypeStatusSchema } from './enums.js';
 
 export const CreateServiceTypeSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, 'El nombre es obligatorio'),
   description: z.string().optional(),
   price: z.number().positive().optional(),
 });

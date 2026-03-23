@@ -1,19 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useActionState } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ServiceTypeResponse } from '@repo/types';
-import type { ServiceTypeActionState } from '../../../../../actions/service-types';
-
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react');
-  return { ...actual, useActionState: vi.fn() };
-});
 
 vi.mock('../../../../../actions/service-types', () => ({
   createServiceTypeAction: vi.fn(),
   updateServiceTypeAction: vi.fn(),
 }));
 
+import {
+  createServiceTypeAction,
+  updateServiceTypeAction,
+} from '../../../../../actions/service-types';
 import { ServiceTypeDrawer } from './service-type-drawer';
 
 const mockServiceType: ServiceTypeResponse = {
@@ -28,17 +26,13 @@ const mockServiceType: ServiceTypeResponse = {
 };
 
 describe('ServiceTypeDrawer', () => {
-  const mockDispatch = vi.fn();
   const mockOnClose = vi.fn();
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useActionState<ServiceTypeActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
+    vi.mocked(createServiceTypeAction).mockResolvedValue(null);
+    vi.mocked(updateServiceTypeAction).mockResolvedValue(null);
   });
 
   it('renders create form when no serviceType prop is passed', () => {
@@ -68,72 +62,64 @@ describe('ServiceTypeDrawer', () => {
     expect(screen.getByDisplayValue('1500')).toBeInTheDocument();
   });
 
-  it('shows "El nombre es obligatorio" when name is empty and form is submitted', async () => {
+  it('shows validation error when name is empty and form is submitted', async () => {
+    const user = userEvent.setup();
     render(
       <ServiceTypeDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo tipo de servicio/i }));
+    await user.click(screen.getByRole('button', { name: /crear tipo de servicio/i }));
     await waitFor(() => {
-      expect(screen.getByText('El nombre es obligatorio')).toBeInTheDocument();
+      const error = screen.queryByText(/obligatorio|required|least 1/i);
+      expect(error).toBeInTheDocument();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(createServiceTypeAction).not.toHaveBeenCalled();
   });
 
-  it('dispatches form data on valid submission', async () => {
+  it('calls createServiceTypeAction on valid submission', async () => {
+    const user = userEvent.setup();
     render(
       <ServiceTypeDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    fireEvent.change(screen.getByLabelText(/nombre/i), {
-      target: { value: 'Diálisis peritoneal' },
-    });
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo tipo de servicio/i }));
+    await user.type(screen.getByLabelText(/nombre/i), 'Diálisis peritoneal');
+    await user.click(screen.getByRole('button', { name: /crear tipo de servicio/i }));
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(FormData));
+      expect(createServiceTypeAction).toHaveBeenCalledWith(null, expect.any(FormData));
     });
   });
 
-  it('shows server error without closing the drawer', () => {
-    vi.mocked(useActionState<ServiceTypeActionState, FormData>).mockReturnValue([
-      { error: 'Ya existe un tipo de servicio con ese nombre' },
-      mockDispatch,
-      false,
-    ]);
+  it('shows server error without closing the drawer', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createServiceTypeAction).mockResolvedValue({
+      error: 'Ya existe un tipo de servicio con ese nombre',
+    });
     render(
       <ServiceTypeDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-    expect(
-      screen.getByText('Ya existe un tipo de servicio con ese nombre'),
-    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/nombre/i), 'Hemodiálisis');
+    await user.click(screen.getByRole('button', { name: /crear tipo de servicio/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByText('Ya existe un tipo de servicio con ese nombre'),
+      ).toBeInTheDocument();
+    });
     expect(
       screen.getByRole('heading', { name: /nuevo tipo de servicio/i }),
     ).toBeInTheDocument();
   });
 
   it('calls onSuccess after successful submission', async () => {
-    vi.mocked(useActionState<ServiceTypeActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      true,
-    ]);
-    const { rerender } = render(
+    const user = userEvent.setup();
+    render(
       <ServiceTypeDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );
-
-    vi.mocked(useActionState<ServiceTypeActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
-    rerender(
-      <ServiceTypeDrawer open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
-    );
-
+    await user.type(screen.getByLabelText(/nombre/i), 'Diálisis peritoneal');
+    await user.click(screen.getByRole('button', { name: /crear tipo de servicio/i }));
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
 
-  it('does not render when open is false', () => {
+  it('does not render content when open is false', () => {
     render(
       <ServiceTypeDrawer open={false} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
     );

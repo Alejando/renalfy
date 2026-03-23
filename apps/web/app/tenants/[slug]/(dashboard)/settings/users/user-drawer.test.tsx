@@ -1,25 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useActionState } from 'react';
+import userEvent from '@testing-library/user-event';
 import type { LocationResponse, UserResponse } from '@repo/types';
-import type { UserActionState } from '../../../../../actions/users';
-
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react');
-  return { ...actual, useActionState: vi.fn() };
-});
 
 vi.mock('../../../../../actions/users', () => ({
   createUserAction: vi.fn(),
   updateUserAction: vi.fn(),
 }));
 
+import { createUserAction, updateUserAction } from '../../../../../actions/users';
 import { UserDrawer } from './user-drawer';
 
 const mockLocations: LocationResponse[] = [
   {
-    id: 'loc-1',
-    tenantId: 'tenant-1',
+    id: '11111111-1111-1111-1111-111111111111',
+    tenantId: '22222222-2222-2222-2222-222222222222',
     name: 'Sucursal Centro',
     address: null,
     phone: null,
@@ -30,9 +25,9 @@ const mockLocations: LocationResponse[] = [
 ];
 
 const mockUser: UserResponse = {
-  id: 'user-1',
-  tenantId: 'tenant-1',
-  locationId: 'loc-1',
+  id: '44444444-4444-4444-4444-444444444444',
+  tenantId: '22222222-2222-2222-2222-222222222222',
+  locationId: '11111111-1111-1111-1111-111111111111',
   name: 'Ana García',
   email: 'ana@clinica.com',
   role: 'STAFF',
@@ -44,17 +39,13 @@ const mockUser: UserResponse = {
 };
 
 describe('UserDrawer', () => {
-  const mockDispatch = vi.fn();
   const mockOnClose = vi.fn();
   const mockOnSuccess = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useActionState<UserActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
+    vi.mocked(createUserAction).mockResolvedValue(null);
+    vi.mocked(updateUserAction).mockResolvedValue(null);
   });
 
   it('renders create form with password field when no user prop', () => {
@@ -87,6 +78,7 @@ describe('UserDrawer', () => {
   });
 
   it('shows "La sucursal es obligatoria" when role is MANAGER and no location selected', async () => {
+    const user = userEvent.setup();
     render(
       <UserDrawer
         open={true}
@@ -98,22 +90,19 @@ describe('UserDrawer', () => {
     // Select MANAGER role
     fireEvent.change(screen.getByLabelText(/rol/i), { target: { value: 'MANAGER' } });
     // Clear location selection
+    await waitFor(() => {
+      expect(screen.getByLabelText(/sucursal/i)).toBeInTheDocument();
+    });
     fireEvent.change(screen.getByLabelText(/sucursal/i), { target: { value: '' } });
-    // Submit with empty name to trigger validation
-    fireEvent.change(screen.getByLabelText(/nombre completo/i), {
-      target: { value: 'Test User' },
-    });
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@test.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/contraseña/i), {
-      target: { value: 'password123' },
-    });
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo usuario/i }));
+    // Fill required fields
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /crear usuario/i }));
     await waitFor(() => {
       expect(screen.getByText(/la sucursal es obligatoria/i)).toBeInTheDocument();
     });
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(createUserAction).not.toHaveBeenCalled();
   });
 
   it('hides location field when role is OWNER', () => {
@@ -142,7 +131,8 @@ describe('UserDrawer', () => {
     expect(screen.queryByLabelText(/sucursal/i)).not.toBeInTheDocument();
   });
 
-  it('calls createUserAction dispatch on valid create submission', async () => {
+  it('calls createUserAction on valid create submission', async () => {
+    const user = userEvent.setup();
     render(
       <UserDrawer
         open={true}
@@ -151,23 +141,18 @@ describe('UserDrawer', () => {
         locations={mockLocations}
       />,
     );
-    fireEvent.change(screen.getByLabelText(/nombre completo/i), {
-      target: { value: 'Carlos Pérez' },
-    });
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'carlos@clinica.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/contraseña/i), {
-      target: { value: 'securepassword' },
-    });
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Carlos Pérez');
+    await user.type(screen.getByLabelText(/email/i), 'carlos@clinica.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'securepassword');
     fireEvent.change(screen.getByLabelText(/rol/i), { target: { value: 'ADMIN' } });
-    fireEvent.submit(screen.getByRole('form', { name: /nuevo usuario/i }));
+    await user.click(screen.getByRole('button', { name: /crear usuario/i }));
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(FormData));
+      expect(createUserAction).toHaveBeenCalledWith(null, expect.any(FormData));
     });
   });
 
-  it('calls updateUserAction dispatch on valid edit submission', async () => {
+  it('calls updateUserAction on valid edit submission', async () => {
+    const user = userEvent.setup();
     render(
       <UserDrawer
         open={true}
@@ -177,18 +162,17 @@ describe('UserDrawer', () => {
         user={mockUser}
       />,
     );
-    fireEvent.submit(screen.getByRole('form', { name: /editar usuario/i }));
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith(expect.any(FormData));
+      expect(updateUserAction).toHaveBeenCalledWith(null, expect.any(FormData));
     });
   });
 
-  it('shows API error message inside drawer without closing', () => {
-    vi.mocked(useActionState<UserActionState, FormData>).mockReturnValue([
-      { error: 'Ya existe un usuario con ese correo' },
-      mockDispatch,
-      false,
-    ]);
+  it('shows API error message inside drawer without closing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createUserAction).mockResolvedValue({
+      error: 'Ya existe un usuario con ese correo',
+    });
     render(
       <UserDrawer
         open={true}
@@ -197,17 +181,19 @@ describe('UserDrawer', () => {
         locations={mockLocations}
       />,
     );
-    expect(screen.getByText('Ya existe un usuario con ese correo')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@clinica.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /crear usuario/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Ya existe un usuario con ese correo')).toBeInTheDocument();
+    });
     expect(screen.getByRole('heading', { name: /nuevo usuario/i })).toBeInTheDocument();
   });
 
-  it('calls onSuccess after submission completes successfully', async () => {
-    vi.mocked(useActionState<UserActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      true,
-    ]);
-    const { rerender } = render(
+  it('calls onSuccess after successful create submission', async () => {
+    const user = userEvent.setup();
+    render(
       <UserDrawer
         open={true}
         onClose={mockOnClose}
@@ -215,27 +201,16 @@ describe('UserDrawer', () => {
         locations={mockLocations}
       />,
     );
-
-    vi.mocked(useActionState<UserActionState, FormData>).mockReturnValue([
-      null,
-      mockDispatch,
-      false,
-    ]);
-    rerender(
-      <UserDrawer
-        open={true}
-        onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
-        locations={mockLocations}
-      />,
-    );
-
+    await user.type(screen.getByLabelText(/nombre completo/i), 'Test User');
+    await user.type(screen.getByLabelText(/email/i), 'test@clinica.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'password123');
+    await user.click(screen.getByRole('button', { name: /crear usuario/i }));
     await waitFor(() => {
       expect(mockOnSuccess).toHaveBeenCalled();
     });
   });
 
-  it('does not render when open is false', () => {
+  it('does not render content when open is false', () => {
     render(
       <UserDrawer
         open={false}

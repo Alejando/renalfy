@@ -14,6 +14,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { PatientDrawer } from './patient-drawer';
 import { deletePatientAction } from '../../../../actions/patients';
 import { EmptyState } from '../../../../components/empty-state';
@@ -31,13 +42,18 @@ const STATUS_LABELS: Record<string, string> = {
   DELETED: 'Dado de baja',
 };
 
-const STATUS_CLASSES: Record<string, string> = {
-  ACTIVE: 'bg-primary/10 text-primary',
-  INACTIVE: 'bg-surface-container-high text-secondary',
-  DELETED: 'bg-error-container/60 text-on-error-container',
-};
+const TABLE_HEAD_CLASS =
+  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
 
 const CAN_DELETE_ROLES: UserRole[] = ['OWNER', 'ADMIN'];
+
+function getStatusVariant(
+  status: string,
+): 'status-active' | 'status-inactive' | 'status-error' {
+  if (status === 'ACTIVE') return 'status-active';
+  if (status === 'DELETED') return 'status-error';
+  return 'status-inactive';
+}
 
 export function PatientsPageClient({
   patients,
@@ -48,7 +64,9 @@ export function PatientsPageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<PaginatedPatientsResponse['data'][0] | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<
+    PaginatedPatientsResponse['data'][0] | null
+  >(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState(searchParams.get('search') ?? '');
   const [isPending, startTransition] = useTransition();
@@ -116,34 +134,24 @@ export function PatientsPageClient({
             Gestiona el padrón de pacientes de tu clínica
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10"
-          style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-        >
+        <Button variant="gradient" onClick={openCreate}>
           + Nuevo paciente
-        </button>
+        </Button>
       </div>
 
       {/* Search bar */}
       <div className="flex items-center gap-3">
-        <input
+        <Input
           type="text"
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={handleSearchKeyDown}
           placeholder="Buscar por nombre..."
-          className="flex-1 bg-surface-container-highest border-none rounded-md px-4 py-2.5 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+          className="flex-1"
         />
-        <button
-          type="button"
-          onClick={handleSearch}
-          aria-label="Buscar"
-          className="px-4 py-2.5 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors"
-        >
+        <Button variant="outline" onClick={handleSearch} aria-label="Buscar">
           Buscar
-        </button>
+        </Button>
       </div>
 
       {/* Table or empty state */}
@@ -152,101 +160,85 @@ export function PatientsPageClient({
           title="Sin pacientes aún"
           description="Crea el primer registro de paciente para comenzar."
           action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm shadow-md shadow-primary/10"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-            >
+            <Button variant="gradient" onClick={openCreate}>
               + Nuevo paciente
-            </button>
+            </Button>
           }
         />
       ) : (
         <>
-          <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-surface-container-low">
-                  <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                    Nombre
-                  </th>
-                  <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold hidden md:table-cell">
+          <div className="rounded-xl overflow-hidden border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={TABLE_HEAD_CLASS}>Nombre</TableHead>
+                  <TableHead className={`${TABLE_HEAD_CLASS} hidden md:table-cell`}>
                     Sucursal
-                  </th>
-                  <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold hidden lg:table-cell">
+                  </TableHead>
+                  <TableHead className={`${TABLE_HEAD_CLASS} hidden lg:table-cell`}>
                     Fecha de nacimiento
-                  </th>
-                  <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold hidden lg:table-cell">
+                  </TableHead>
+                  <TableHead className={`${TABLE_HEAD_CLASS} hidden lg:table-cell`}>
                     Teléfono
-                  </th>
-                  <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                    Estado
-                  </th>
-                  <th className="text-right px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                  <TableHead className={TABLE_HEAD_CLASS}>Estado</TableHead>
+                  <TableHead className={`${TABLE_HEAD_CLASS} text-right`}>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {patients.data.map((patient) => (
-                  <tr
-                    key={patient.id}
-                    className="hover:bg-surface-container-low/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-on-surface font-medium">
+                  <TableRow key={patient.id}>
+                    <TableCell className="text-foreground font-medium">
                       <Link
                         href={`/patients/${patient.id}`}
                         className="text-primary hover:underline decoration-2 underline-offset-2"
                       >
                         {patient.name}
                       </Link>
-                    </td>
-                    <td className="px-6 py-4 text-secondary text-sm hidden md:table-cell">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
                       {patient.locationName}
-                    </td>
-                    <td className="px-6 py-4 text-secondary text-sm hidden lg:table-cell">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">
                       {patient.birthDate
                         ? new Date(patient.birthDate).toLocaleDateString('es-MX')
                         : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-secondary text-sm hidden lg:table-cell">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">
                       {patient.phone ?? '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold font-label ${STATUS_CLASSES[patient.status] ?? ''}`}
-                      >
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(patient.status)}>
                         {STATUS_LABELS[patient.status] ?? patient.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
+                        <Button
+                          variant="link"
+                          size="sm"
                           onClick={() => openEdit(patient)}
                           disabled={patient.status === 'DELETED'}
                           aria-label="Editar"
-                          className="text-sm text-primary font-semibold hover:underline decoration-2 underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
                         >
                           Editar
-                        </button>
+                        </Button>
                         {canDelete && patient.status === 'ACTIVE' && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="destructive"
+                            size="sm"
                             onClick={() => setDeleteTargetId(patient.id)}
                             disabled={isPending}
-                            className="text-sm text-error font-semibold hover:underline decoration-2 underline-offset-2 disabled:opacity-50"
                           >
                             Dar de baja
-                          </button>
+                          </Button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}
@@ -256,22 +248,20 @@ export function PatientsPageClient({
                 Página {patients.page} de {Math.ceil(patients.total / patients.limit)}
               </p>
               <div className="flex gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
                   onClick={() => goToPage(patients.page - 1)}
                   disabled={patients.page <= 1}
-                  className="px-4 py-2 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Anterior
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => goToPage(patients.page + 1)}
                   disabled={patients.page * patients.limit >= patients.total}
-                  className="px-4 py-2 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Siguiente
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -279,12 +269,18 @@ export function PatientsPageClient({
       )}
 
       {/* AlertDialog for delete confirmation */}
-      <AlertDialog open={deleteTargetId !== null} onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}>
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetId(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Dar de baja al paciente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción cambiará el estado del paciente a inactivo. Puedes reactivarlo más adelante.
+              Esta acción cambiará el estado del paciente a inactivo. Puedes reactivarlo más
+              adelante.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
