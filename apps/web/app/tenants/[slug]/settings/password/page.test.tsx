@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useActionState } from 'react';
 import ChangePasswordPage from './page';
 import type { AuthActionState } from '../../../../actions/auth';
@@ -113,5 +114,46 @@ describe('ChangePasswordPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /mostrar confirmar contraseña/i }));
     expect(input).toHaveAttribute('type', 'text');
+  });
+
+  it('shows "Las contraseñas no coinciden" when action returns that error', () => {
+    // This error originates from the ChangePasswordSchema .refine() on the server action.
+    // The page renders whatever error the action state contains.
+    vi.mocked(useActionState<AuthActionState, FormData>).mockReturnValue([
+      { error: 'Las contraseñas no coinciden' },
+      mockDispatch,
+      false,
+    ]);
+
+    render(<ChangePasswordPage />);
+
+    expect(screen.getByText('Las contraseñas no coinciden')).toBeInTheDocument();
+  });
+
+  it('does not call the dispatch when submit is skipped (button is disabled while pending)', () => {
+    vi.mocked(useActionState<AuthActionState, FormData>).mockReturnValue([
+      null,
+      mockDispatch,
+      true,
+    ]);
+
+    render(<ChangePasswordPage />);
+
+    const button = screen.getByRole('button', { name: /actualizando/i });
+    expect(button).toBeDisabled();
+    // The disabled button cannot trigger further dispatches
+    expect(mockDispatch).not.toHaveBeenCalled();
+  });
+
+  it('dispatches the form action when the user fills in valid data and submits', async () => {
+    const user = userEvent.setup();
+    render(<ChangePasswordPage />);
+
+    await user.type(screen.getByLabelText('Contraseña actual'), 'oldpass123');
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'newpass456');
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'newpass456');
+    await user.click(screen.getByRole('button', { name: /actualizar contraseña/i }));
+
+    expect(mockDispatch).toHaveBeenCalled();
   });
 });
