@@ -13,6 +13,8 @@ import { PatientsModule } from './patients/patients.module.js';
 import { AppointmentsModule } from './appointments/appointments.module.js';
 import { ClinicalTemplatesModule } from './clinical-templates/clinical-templates.module.js';
 import { ReceiptsModule } from './receipts/receipts.module.js';
+import { CompaniesModule } from './companies/companies.module.js';
+import { PlansModule } from './plans/plans.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -33,6 +35,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     AppointmentsModule,
     ClinicalTemplatesModule,
     ReceiptsModule,
+    CompaniesModule,
+    PlansModule,
   ],
   providers: [
     // JwtAuthGuard runs first (global) so req.user is set before RolesGuard

@@ -10,12 +10,14 @@ interface Props {
 }
 
 const SETTINGS_ROLES = ['OWNER', 'ADMIN'] as const;
+const ADMIN_ONLY_ROLES = ['OWNER', 'ADMIN'] as const;
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Inicio' },
   { href: '/patients', label: 'Pacientes' },
   { href: '/appointments', label: 'Citas' },
   { href: '/receipts', label: 'Recibos' },
+  { href: '/plans', label: 'Planes' },
 ];
 
 export default async function DashboardLayout({ children }: Props) {
@@ -31,6 +33,9 @@ export default async function DashboardLayout({ children }: Props) {
   const canAccessSettings =
     sessionUser !== null &&
     (SETTINGS_ROLES as readonly string[]).includes(sessionUser.role);
+  const canAccessCompanies =
+    sessionUser !== null &&
+    (ADMIN_ONLY_ROLES as readonly string[]).includes(sessionUser.role);
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -56,6 +61,14 @@ export default async function DashboardLayout({ children }: Props) {
                 {link.label}
               </Link>
             ))}
+            {canAccessCompanies && (
+              <Link
+                href="/companies"
+                className="text-sm font-medium text-secondary hover:text-primary transition-colors"
+              >
+                Empresas
+              </Link>
+            )}
             {canAccessSettings && (
               <Link
                 href="/settings/locations"

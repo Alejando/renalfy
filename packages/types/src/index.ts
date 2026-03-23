@@ -8,3 +8,4 @@ export * from './service-types.schemas.js';
 export * from './appointments.schemas.js';
 export * from './clinical-templates.schemas.js';
 export * from './receipts.schemas.js';
+export * from './companies-plans.schemas.js';

@@ -867,9 +867,9 @@ import { PrismaService } from '../prisma/prisma.service';
 | 9 | UI — Settings: Locations + Users | Front | ✅ Listo | 3 |
 | 10 | UI — Módulo 1: Pacientes + Tipos de servicio | Front | ✅ Listo | 5 |
 | 11 | UI — Módulo 1: Recibos | Front | ✅ Listo | 7 |
-| 12 | UI — Módulo 1: Citas + formulario clínico dinámico | Full | En progreso | 6, 10 |
-| 13 | Módulo 2 — Empresas + Planes (backend) | Back | Pendiente | 12 |
-| 14 | UI — Módulo 2: Empresas + Planes | Front | Pendiente | 13 |
+| 12 | UI — Módulo 1: Citas + formulario clínico dinámico | Full | ✅ Listo | 6, 10 |
+| 13 | Módulo 2 — Empresas + Planes (backend) | Back | ✅ Listo | 12 |
+| 14 | UI — Módulo 2: Empresas + Planes | Front | ✅ Listo | 13 |
 | 15 | Módulo 3 — Productos + Stock por sucursal (backend) | Back | Pendiente | 12 |
 | 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente | 15 |
 | 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | Pendiente | 15 |
