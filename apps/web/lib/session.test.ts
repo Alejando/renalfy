@@ -45,6 +45,27 @@ describe('getSessionUser', () => {
       userId: 'user-123',
       tenantId: 'tenant-456',
       role: 'ADMIN',
+      locationId: null,
+    });
+  });
+
+  it('returns locationId when present in JWT payload', async () => {
+    const token = makeJwt({
+      sub: 'user-123',
+      tenantId: 'tenant-456',
+      role: 'MANAGER',
+      locationId: 'loc-789',
+    });
+    vi.mocked(cookies).mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: token }),
+    } as unknown as Awaited<ReturnType<typeof cookies>>);
+
+    const result = await getSessionUser();
+    expect(result).toEqual({
+      userId: 'user-123',
+      tenantId: 'tenant-456',
+      role: 'MANAGER',
+      locationId: 'loc-789',
     });
   });
 

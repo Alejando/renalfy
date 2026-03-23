@@ -1,12 +1,29 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { z } from 'zod';
+import { CreateLocationSchema, UpdateLocationSchema } from '@repo/types';
 import type { LocationResponse } from '@repo/types';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import {
   createLocationAction,
   updateLocationAction,
-  type LocationActionState,
 } from '../../../../../actions/locations';
+
+type CreateFormValues = z.infer<typeof CreateLocationSchema>;
+type UpdateFormValues = z.infer<typeof UpdateLocationSchema>;
+type FormValues = CreateFormValues | UpdateFormValues;
 
 interface LocationDrawerProps {
   open: boolean;
@@ -15,178 +32,170 @@ interface LocationDrawerProps {
   location?: LocationResponse;
 }
 
-export function LocationDrawer({ open, onClose, onSuccess, location }: LocationDrawerProps) {
+const LABEL_CLASS =
+  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+
+export function LocationDrawer({
+  open,
+  onClose,
+  onSuccess,
+  location,
+}: LocationDrawerProps) {
   const isEdit = location !== undefined;
-  const action = isEdit ? updateLocationAction : createLocationAction;
+  const schema = isEdit ? UpdateLocationSchema : CreateLocationSchema;
 
-  const [state, dispatch, isPending] = useActionState<LocationActionState, FormData>(
-    action,
-    null,
-  );
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: location
+      ? { name: location.name, address: location.address ?? '', phone: location.phone ?? '' }
+      : { name: '', address: '', phone: '' },
+  });
 
-  const [nameError, setNameError] = useState('');
-  const prevPendingRef = useRef(false);
-
-  // Detect successful submission: isPending went true → false with state === null
   useEffect(() => {
-    if (prevPendingRef.current && !isPending && state === null) {
-      onSuccess();
+    if (!open) {
+      reset(
+        location
+          ? { name: location.name, address: location.address ?? '', phone: location.phone ?? '' }
+          : { name: '', address: '', phone: '' },
+      );
     }
-    prevPendingRef.current = isPending;
-  }, [isPending, state, onSuccess]);
+  }, [open, location, reset]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = (formData.get('name') as string) ?? '';
-    if (!name.trim()) {
-      setNameError('El nombre es obligatorio');
-      return;
+  const onInvalid = (fieldErrors: FieldErrors<FormValues>) => {
+    for (const [field, error] of Object.entries(fieldErrors)) {
+      if (error?.message) {
+        setError(field as keyof FormValues, { type: String(error.type ?? 'manual'), message: error.message });
+      }
     }
-    setNameError('');
-    dispatch(formData);
   };
 
-  if (!open) return null;
+  const onSubmit = async (data: FormValues) => {
+    const formData = new FormData();
+    if (isEdit && location) {
+      formData.append('id', location.id);
+    }
+    if (data.name) {
+      formData.append('name', data.name);
+    }
+    if (data.address) {
+      formData.append('address', data.address);
+    }
+    if (data.phone) {
+      formData.append('phone', data.phone);
+    }
+
+    const result = isEdit
+      ? await updateLocationAction(null, formData)
+      : await createLocationAction(null, formData);
+
+    if (result?.error) {
+      setError('root', { message: result.error });
+      return;
+    }
+    onSuccess();
+  };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-inverse-surface/20 backdrop-blur-[2px] z-40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen: boolean) => {
+        if (!isOpen) {
+          onClose();
+        }
+      }}
+    >
+      <SheetContent side="right" className="w-full max-w-md flex flex-col p-0">
+        <SheetHeader className="px-8 py-6 bg-muted">
+          <SheetTitle className="font-headline font-bold text-xl">
+            {isEdit ? 'Editar sucursal' : 'Nueva sucursal'}
+          </SheetTitle>
+          <SheetDescription>
+            {isEdit
+              ? 'Modifica los datos de la sucursal'
+              : 'Agrega una nueva ubicación a tu clínica'}
+          </SheetDescription>
+        </SheetHeader>
 
-      {/* Drawer panel */}
-      <aside
-        aria-label={isEdit ? 'Editar sucursal' : 'Nueva sucursal'}
-        role="dialog"
-        aria-modal="true"
-        className="fixed right-0 top-0 h-full w-full max-w-md bg-surface-container-lowest shadow-2xl z-50 flex flex-col"
-      >
-        {/* Header */}
-        <div className="px-8 py-6 bg-surface-container-low flex items-center justify-between">
-          <div>
-            <h2 className="font-headline font-bold text-xl text-on-surface">
-              {isEdit ? 'Editar sucursal' : 'Nueva sucursal'}
-            </h2>
-            <p className="text-secondary text-sm mt-0.5">
-              {isEdit
-                ? 'Modifica los datos de la sucursal'
-                : 'Agrega una nueva ubicación a tu clínica'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar panel"
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-secondary hover:text-on-surface"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Error banner from server action */}
-        {state?.error && (
-          <div className="mx-8 mt-6 p-3 bg-error-container rounded-lg">
-            <p className="text-on-error-container text-sm font-medium">{state.error}</p>
+        {errors.root && (
+          <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
+            <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
           </div>
         )}
 
-        {/* Form */}
         <form
           aria-label={isEdit ? 'Editar sucursal' : 'Nueva sucursal'}
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
           className="flex-1 overflow-y-auto px-8 py-6 space-y-6"
         >
-          {isEdit && <input type="hidden" name="id" value={location.id} />}
-
           {/* Nombre */}
           <div className="space-y-2">
-            <label
-              htmlFor="loc-name"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
-              Nombre <span className="text-error">*</span>
-            </label>
-            <input
+            <Label htmlFor="loc-name" className={LABEL_CLASS}>
+              Nombre <span className="text-destructive">*</span>
+            </Label>
+            <Input
               id="loc-name"
-              name="name"
               type="text"
-              defaultValue={location?.name ?? ''}
               placeholder="Ej. Sucursal Centro"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              {...register('name')}
             />
-            {nameError && <p className="text-error text-xs font-medium">{nameError}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
           </div>
 
           {/* Dirección */}
           <div className="space-y-2">
-            <label
-              htmlFor="loc-address"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
+            <Label htmlFor="loc-address" className={LABEL_CLASS}>
               Dirección
-            </label>
-            <input
+            </Label>
+            <Input
               id="loc-address"
-              name="address"
               type="text"
-              defaultValue={location?.address ?? ''}
               placeholder="Ej. Av. Principal 123, Col. Centro"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              {...register('address')}
             />
           </div>
 
           {/* Teléfono */}
           <div className="space-y-2">
-            <label
-              htmlFor="loc-phone"
-              className="block text-[10px] font-label uppercase tracking-widest text-secondary font-semibold"
-            >
+            <Label htmlFor="loc-phone" className={LABEL_CLASS}>
               Teléfono
-            </label>
-            <input
+            </Label>
+            <Input
               id="loc-phone"
-              name="phone"
               type="tel"
-              defaultValue={location?.phone ?? ''}
               placeholder="Ej. 555-123-4567"
-              className="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              {...register('phone')}
             />
           </div>
 
           {/* Actions */}
           <div className="pt-4 flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 py-3 rounded-md bg-surface-container text-secondary font-semibold text-sm hover:bg-surface-container-high transition-colors"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isPending}
-              className="flex-1 py-3 rounded-md text-on-primary font-bold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
+              variant="gradient"
+              disabled={isSubmitting}
+              className="flex-1"
             >
-              {isPending ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear sucursal'}
-            </button>
+              {isSubmitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear sucursal'}
+            </Button>
           </div>
         </form>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -99,6 +99,7 @@ export async function changePasswordAction(
   const rawData = {
     currentPassword: formData.get('currentPassword'),
     newPassword: formData.get('newPassword'),
+    confirmPassword: formData.get('confirmPassword'),
   };
 
   const result = ChangePasswordSchema.safeParse(rawData);

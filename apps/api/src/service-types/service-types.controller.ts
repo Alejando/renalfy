@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import type { UserRole } from '@repo/types';
@@ -18,6 +19,7 @@ import {
 import { ServiceTypesService } from './service-types.service.js';
 import { CreateServiceTypeDto } from './dto/create-service-type.dto.js';
 import { UpdateServiceTypeDto } from './dto/update-service-type.dto.js';
+import { ServiceTypeQueryDto } from './dto/service-type-query.dto.js';
 
 const WRITERS: UserRole[] = ['OWNER', 'ADMIN'];
 
@@ -36,8 +38,11 @@ export class ServiceTypesController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: CurrentUserPayload) {
-    return this.serviceTypesService.findAll(user.tenantId);
+  findAll(
+    @Query() query: ServiceTypeQueryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.serviceTypesService.findAll(user.tenantId, query);
   }
 
   @Patch(':id')

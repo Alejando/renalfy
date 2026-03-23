@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider      = "prisma-client"
+  output        = "../generated/prisma"
+  moduleFormat  = "cjs"
 }
 
 datasource db {
@@ -96,8 +97,9 @@ model Location {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  users  User[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  users    User[]
+  patients Patient[]
 }
 
 // ─────────────────────────────────────────────
@@ -117,6 +119,9 @@ model Patient {
   status     PatientStatus @default(ACTIVE)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
+
+  location        Location         @relation(fields: [locationId], references: [id])
+  patientConsents PatientConsent[]
 }
 
 enum PatientStatus {
@@ -551,6 +556,8 @@ model PatientConsent {
   revokedAt    DateTime?
   ipAddress    String?
   signatureUrl String?     // URL de la firma electrónica en almacenamiento
+
+  patient Patient @relation(fields: [patientId], references: [id])
 
   @@index([tenantId, patientId])
 }

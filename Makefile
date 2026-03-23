@@ -1,4 +1,4 @@
-.PHONY: help dev db db-stop db-reset migrate seed api web test lint types types-build
+.PHONY: help dev db db-stop db-reset migrate seed api web stop restart test lint types types-build
 
 SHELL := /bin/bash
 NVM_SH := $(HOME)/.nvm/nvm.sh
@@ -14,6 +14,8 @@ help:
 	@echo "  Entorno"
 	@echo "  -------"
 	@echo "  make dev        Levanta todo: DB + API + Web en paralelo"
+	@echo "  make stop       Mata los procesos en puertos 4000 y 4001"
+	@echo "  make restart    stop + dev"
 	@echo "  make db         Levanta solo PostgreSQL (puerto 5433)"
 	@echo "  make db-stop    Detiene y elimina los contenedores"
 	@echo "  make db-reset   Elimina el volumen y reinicia la BD desde cero"
@@ -71,6 +73,13 @@ studio:
 	$(node_use) && cd apps/api && npx prisma studio
 
 # ─── Servidores ───────────────────────────────────────────────────────────────
+
+stop:
+	@echo "→ Deteniendo servidores en puertos 4000 y 4001..."
+	@lsof -ti:4000,4001 | xargs kill -9 2>/dev/null || true
+	@echo "✓ Servidores detenidos"
+
+restart: stop dev
 
 api:
 	@echo "→ Iniciando API en :4001..."

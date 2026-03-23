@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useActionState } from 'react';
 import TenantLoginPage from './page';
 import type { AuthActionState } from '../../../actions/auth';
@@ -94,5 +95,23 @@ describe('TenantLoginPage', () => {
       '/privacidad',
     );
     expect(screen.getByRole('link', { name: /inicio/i })).toHaveAttribute('href', '/');
+  });
+
+  it('dispatches the form action when the user fills in valid data and submits', async () => {
+    const user = userEvent.setup();
+    render(<TenantLoginPage />);
+
+    await user.type(screen.getByLabelText(/correo electrónico/i), 'doc@clinic.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+
+    // mockDispatch is the dispatch function returned by the mocked useActionState
+    expect(mockDispatch).toHaveBeenCalled();
+  });
+
+  it('does not show error alert when state is null', () => {
+    render(<TenantLoginPage />);
+
+    expect(screen.queryByText(/error al iniciar sesión/i)).not.toBeInTheDocument();
   });
 });

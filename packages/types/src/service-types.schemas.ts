@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ServiceTypeStatusSchema } from './enums.js';
 
 export const CreateServiceTypeSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, 'El nombre es obligatorio'),
   description: z.string().optional(),
   price: z.number().positive().optional(),
 });
@@ -11,6 +11,11 @@ export const UpdateServiceTypeSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   price: z.number().positive().optional(),
+  status: ServiceTypeStatusSchema.optional(),
+});
+
+export const ServiceTypeQuerySchema = z.object({
+  include: z.enum(['all']).optional(),
 });
 
 export const ServiceTypeResponseSchema = z.object({
@@ -27,3 +32,4 @@ export const ServiceTypeResponseSchema = z.object({
 export type CreateServiceTypeDto = z.infer<typeof CreateServiceTypeSchema>;
 export type UpdateServiceTypeDto = z.infer<typeof UpdateServiceTypeSchema>;
 export type ServiceTypeResponse = z.infer<typeof ServiceTypeResponseSchema>;
+export type ServiceTypeQuery = z.infer<typeof ServiceTypeQuerySchema>;

@@ -9,9 +9,12 @@ export const CreateConsentSchema = z.object({
 });
 
 export const CreatePatientSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, 'El nombre es obligatorio'),
   locationId: z.string().uuid(),
-  birthDate: z.coerce.date().optional(),
+  birthDate: z.preprocess(
+    (val) => (val === '' || val === null ? undefined : val),
+    z.coerce.date().optional(),
+  ),
   phone: z.string().optional(),
   mobile: z.string().optional(),
   address: z.string().optional(),
@@ -45,6 +48,14 @@ export const PatientResponseSchema = z.object({
   notes: z.string().nullable(),
   status: PatientStatusSchema,
   hasConsent: z.boolean(),
+  locationName: z.string(),
+  consent: z
+    .object({
+      type: ConsentTypeSchema,
+      version: z.string(),
+      signedAt: z.coerce.date(),
+    })
+    .nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

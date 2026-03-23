@@ -15,6 +15,16 @@ const LOCATION_A = 'location-uuid-a';
 const LOCATION_B = 'location-uuid-b';
 const PATIENT_ID = 'patient-uuid-1';
 
+const CONSENT_SIGNED_AT = new Date('2024-01-10');
+
+const mockConsent = {
+  id: 'consent-uuid-1',
+  type: 'PRIVACY_NOTICE' as const,
+  version: 'v1.0',
+  grantedAt: CONSENT_SIGNED_AT,
+  revokedAt: null,
+};
+
 const mockPatient = {
   id: PATIENT_ID,
   tenantId: TENANT_ID,
@@ -28,6 +38,8 @@ const mockPatient = {
   status: 'ACTIVE' as const,
   createdAt: new Date(),
   updatedAt: new Date(),
+  location: { name: 'Sucursal Centro' },
+  patientConsents: [mockConsent],
 };
 
 function makeTxMock(patientResult = mockPatient) {
@@ -55,6 +67,7 @@ function makePrisma(
     patientConsent: {
       findMany: jest.fn().mockResolvedValue([{ patientId: PATIENT_ID }]),
       count: jest.fn().mockResolvedValue(1),
+      findFirst: jest.fn().mockResolvedValue(mockConsent),
     },
     $transaction: jest
       .fn()
@@ -251,6 +264,18 @@ describe('PatientsService', () => {
 
       expect(result.data[0]).toHaveProperty('hasConsent');
     });
+
+    it('should include locationName in each patient', async () => {
+      const prisma = makePrisma();
+      const service = new PatientsService(prisma);
+
+      const result = await service.findAll(TENANT_ID, null, {
+        page: 1,
+        limit: 20,
+      });
+
+      expect(result.data[0]).toHaveProperty('locationName', 'Sucursal Centro');
+    });
   });
 
   describe('findOne', () => {
@@ -261,6 +286,44 @@ describe('PatientsService', () => {
       const result = await service.findOne(PATIENT_ID, TENANT_ID, null);
 
       expect(result).toMatchObject({ id: PATIENT_ID, hasConsent: true });
+    });
+
+    it('should return consent details when patient has an active consent', async () => {
+      const prisma = makePrisma();
+      const service = new PatientsService(prisma);
+
+      const result = await service.findOne(PATIENT_ID, TENANT_ID, null);
+
+      expect(result.consent).toEqual({
+        type: 'PRIVACY_NOTICE',
+        version: 'v1.0',
+        signedAt: expect.any(Date),
+      });
+    });
+
+    it('should return consent null when patient has no active consent', async () => {
+      const prisma = makePrisma({
+        patient: {
+          findFirst: jest.fn().mockResolvedValue({
+            ...mockPatient,
+            patientConsents: [],
+          }),
+          findMany: jest.fn(),
+          count: jest.fn(),
+          create: jest.fn(),
+          update: jest.fn(),
+        },
+        patientConsent: {
+          findMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(0),
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      });
+      const service = new PatientsService(prisma);
+
+      const result = await service.findOne(PATIENT_ID, TENANT_ID, null);
+
+      expect(result.consent).toBeNull();
     });
 
     it('should filter by locationId for MANAGER/STAFF', async () => {

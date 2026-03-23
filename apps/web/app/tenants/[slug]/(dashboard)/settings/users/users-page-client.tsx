@@ -5,6 +5,16 @@ import type { LocationResponse, UserResponse } from '@repo/types';
 import { UserDrawer } from './user-drawer';
 import { updateUserStatusAction } from '../../../../../actions/users';
 import { EmptyState } from '../../../../../components/empty-state';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface UsersPageClientProps {
   users: UserResponse[];
@@ -19,23 +29,26 @@ const ROLE_LABELS: Record<string, string> = {
   STAFF: 'Personal',
 };
 
-const ROLE_CLASSES: Record<string, string> = {
-  OWNER: 'bg-primary/10 text-primary',
-  ADMIN: 'bg-primary/10 text-primary',
-  MANAGER: 'bg-tertiary/10 text-tertiary',
-  STAFF: 'bg-surface-container-high text-secondary',
-  SUPER_ADMIN: 'bg-error-container text-on-error-container',
-};
-
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: 'Activo',
   SUSPENDED: 'Suspendido',
 };
 
-const STATUS_CLASSES: Record<string, string> = {
-  ACTIVE: 'bg-primary/10 text-primary',
-  SUSPENDED: 'bg-error-container/60 text-on-error-container',
-};
+const TABLE_HEAD_CLASS =
+  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+
+function getRoleVariant(
+  role: string,
+): 'role-admin' | 'role-manager' | 'role-staff' | 'role-superadmin' {
+  if (role === 'SUPER_ADMIN') return 'role-superadmin';
+  if (role === 'MANAGER') return 'role-manager';
+  if (role === 'STAFF') return 'role-staff';
+  return 'role-admin';
+}
+
+function getStatusVariant(status: string): 'status-active' | 'status-error' {
+  return status === 'ACTIVE' ? 'status-active' : 'status-error';
+}
 
 function getLocationName(locationId: string | null, locations: LocationResponse[]): string {
   if (!locationId) return '—';
@@ -79,14 +92,9 @@ export function UsersPageClient({ users, locations }: UsersPageClientProps) {
             Gestiona los miembros de tu equipo
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm transition-all active:scale-[0.98] hover:opacity-95 shadow-md shadow-primary/10"
-          style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-        >
+        <Button variant="gradient" onClick={openCreate}>
           + Nuevo usuario
-        </button>
+        </Button>
       </div>
 
       {/* Table or empty state */}
@@ -95,89 +103,61 @@ export function UsersPageClient({ users, locations }: UsersPageClientProps) {
           title="Sin usuarios aún"
           description="Agrega el primer miembro al equipo."
           action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="px-5 py-2.5 rounded-md text-on-primary font-semibold text-sm shadow-md shadow-primary/10"
-              style={{ background: 'linear-gradient(135deg, #00647c 0%, #008fa3 100%)' }}
-            >
+            <Button variant="gradient" onClick={openCreate}>
               + Nuevo usuario
-            </button>
+            </Button>
           }
         />
       ) : (
-        <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-low">
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Nombre
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Email
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Rol
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Sucursal
-                </th>
-                <th className="text-left px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Estado
-                </th>
-                <th className="text-right px-6 py-4 text-[10px] font-label uppercase tracking-widest text-secondary font-semibold">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="rounded-xl overflow-hidden border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className={TABLE_HEAD_CLASS}>Nombre</TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Email</TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Rol</TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Sucursal</TableHead>
+                <TableHead className={TABLE_HEAD_CLASS}>Estado</TableHead>
+                <TableHead className={`${TABLE_HEAD_CLASS} text-right`}>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-surface-container-low/50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-on-surface font-medium">{user.name}</td>
-                  <td className="px-6 py-4 text-secondary text-sm">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold font-label ${ROLE_CLASSES[user.role] ?? ''}`}
-                    >
+                <TableRow key={user.id}>
+                  <TableCell className="text-foreground font-medium">{user.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={getRoleVariant(user.role)}>
                       {ROLE_LABELS[user.role] ?? user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-secondary text-sm">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
                     {getLocationName(user.locationId, locations)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold font-label ${STATUS_CLASSES[user.status] ?? ''}`}
-                    >
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(user.status)}>
                       {STATUS_LABELS[user.status] ?? user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(user)}
-                        className="text-sm text-primary font-semibold hover:underline decoration-2 underline-offset-2"
-                      >
+                      <Button variant="link" size="sm" onClick={() => openEdit(user)}>
                         Editar
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleStatus(user)}
                         disabled={isPending}
-                        className="text-sm text-secondary font-semibold hover:text-on-surface transition-colors disabled:opacity-50"
                       >
                         {user.status === 'ACTIVE' ? 'Suspender' : 'Activar'}
-                      </button>
+                      </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
