@@ -84,7 +84,7 @@ Every feature touching patient data must satisfy:
 | Monorepo | Turborepo + pnpm workspaces | — |
 
 - **API prefix**: all endpoints are `/api/...`
-- **Local ports**: web `:4000`, api `:4001`
+- **Local ports**: web `:3020`, api `:3019`
 - **Subdomains**: `{slug}.renalfy.app` routes requests to the correct tenant
 - **Prisma 7**: `PrismaClient` is not extendable — use composition in `PrismaService`; generated client at `apps/api/generated/prisma/`
 - **ESM imports in NestJS**: local imports must include `.js` extension even for `.ts` files

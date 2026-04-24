@@ -71,6 +71,11 @@ pnpm --filter api test:e2e       # e2e tests
 pnpm --filter api test:cov       # coverage
 ```
 
+> **Nota sobre E2E tests:** Prisma 7 usa WASM internamente y requiere `NODE_OPTIONS="--experimental-vm-modules"` para correr los E2E tests con Jest. Ejecutar así:
+> ```bash
+> NODE_OPTIONS="--experimental-vm-modules" pnpm --filter api test:e2e
+> ```
+
 ---
 
 ## Stack
@@ -813,7 +818,7 @@ create(@Body() dto: CreateMeasurementDto) { ... }
 ```bash
 # Arrancar entorno local
 docker-compose up -d          # PostgreSQL en puerto 5432
-pnpm dev                      # api en :4001, web en :4000
+pnpm dev                      # api en :3019, web en :3020
 
 # Base de datos
 cd apps/api
@@ -870,7 +875,7 @@ import { PrismaService } from '../prisma/prisma.service';
 | 12 | UI — Módulo 1: Citas + formulario clínico dinámico | Full | ✅ Listo | 6, 10 |
 | 13 | Módulo 2 — Empresas + Planes (backend) | Back | ✅ Listo | 12 |
 | 14 | UI — Módulo 2: Empresas + Planes | Front | ✅ Listo | 13 |
-| 15 | Módulo 3 — Productos + Stock por sucursal (backend) | Back | Pendiente | 12 |
+| 15 | Módulo 3 — Productos + Stock por sucursal (backend) | Back | ✅ Listo | 12 |
 | 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente | 15 |
 | 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | Pendiente | 15 |
 | 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | Pendiente | 17 |
@@ -892,10 +897,8 @@ import { PrismaService } from '../prisma/prisma.service';
 Para poder correr el script de migración de SUTR, deben estar listos: **Sprints 12 → 24 → 25 → 26 → 27 → 28**
 
 ## Active Technologies
-- TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (006-appointments-dynamic-form)
-- PostgreSQL 16 con RLS — modelos `Appointment`, `Measurement`, `ClinicalTemplate` ya existen (006-appointments-dynamic-form)
-- TypeScript / Node.js 25 + NestJS (latest), Prisma 7, nestjs-zod, `@repo/types` (Zod schemas) (007-receipts-folio-states)
-- PostgreSQL 16 with RLS — `Receipt`, `Plan`, `ReceiptFolioCounter` tables (007-receipts-folio-states)
+- TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (012-products-stock-backend)
+- PostgreSQL 16 with RLS — `Product`, `LocationStock` tables with CRUD, stock management, bulk operations (012-products-stock-backend)
 
 ## Recent Changes
-- 006-appointments-dynamic-form: Added TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types`
+- 012-products-stock-backend: Products & Stock backend fully implemented with 59 tasks completed, 51 unit tests, 39 E2E tests

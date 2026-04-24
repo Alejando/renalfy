@@ -62,7 +62,7 @@ beforeEach(() => {
 
 describe('proxy — routing', () => {
   it('rewrites *.localhost public path /login without auth', async () => {
-    await proxy(makeRequest({ host: 'clinica-demo.localhost:4000', pathname: '/login' }));
+    await proxy(makeRequest({ host: 'clinica-demo.localhost:3020', pathname: '/login' }));
 
     expect(mockRewrite).toHaveBeenCalledOnce();
     const rewrittenUrl = mockRewrite.mock.calls[0]?.[0] as { pathname: string };
@@ -80,7 +80,7 @@ describe('proxy — routing', () => {
   });
 
   it('does not rewrite root localhost (marketing domain)', async () => {
-    await proxy(makeRequest({ host: 'localhost:4000', pathname: '/' }));
+    await proxy(makeRequest({ host: 'localhost:3020', pathname: '/' }));
 
     expect(mockNext).toHaveBeenCalledOnce();
     expect(mockRewrite).not.toHaveBeenCalled();
@@ -95,7 +95,7 @@ describe('proxy — routing', () => {
 
   it('handles multi-part subdomains for authenticated user', async () => {
     await proxy(
-      makeRequest({ host: 'mi-clinica.localhost:4000', pathname: '/dashboard', accessToken: 'tok' }),
+      makeRequest({ host: 'mi-clinica.localhost:3020', pathname: '/dashboard', accessToken: 'tok' }),
     );
 
     const rewrittenUrl = mockRewrite.mock.calls[0]?.[0] as { pathname: string };
@@ -105,7 +105,7 @@ describe('proxy — routing', () => {
 
 describe('proxy — auth guard', () => {
   it('proxies through on public path /login without tokens', async () => {
-    await proxy(makeRequest({ host: 'clinica-demo.localhost:4000', pathname: '/login' }));
+    await proxy(makeRequest({ host: 'clinica-demo.localhost:3020', pathname: '/login' }));
 
     expect(mockRewrite).toHaveBeenCalledOnce();
     expect(mockRedirect).not.toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe('proxy — auth guard', () => {
 
   it('proxies through when access_token is present', async () => {
     await proxy(
-      makeRequest({ host: 'clinica-demo.localhost:4000', accessToken: 'valid-token' }),
+      makeRequest({ host: 'clinica-demo.localhost:3020', accessToken: 'valid-token' }),
     );
 
     expect(mockRewrite).toHaveBeenCalledOnce();
@@ -121,7 +121,7 @@ describe('proxy — auth guard', () => {
   });
 
   it('redirects to /login when no tokens are present on protected path', async () => {
-    await proxy(makeRequest({ host: 'clinica-demo.localhost:4000' }));
+    await proxy(makeRequest({ host: 'clinica-demo.localhost:3020' }));
 
     expect(mockRedirect).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledWith(
@@ -138,15 +138,15 @@ describe('proxy — auth guard', () => {
 
     const response = await proxy(
       makeRequest({
-        host: 'clinica-demo.localhost:4000',
-        url: 'http://clinica-demo.localhost:4000/dashboard',
+        host: 'clinica-demo.localhost:3020',
+        url: 'http://clinica-demo.localhost:3020/dashboard',
         refreshToken: 'valid-refresh',
       }),
     );
 
     expect(mockFetch).toHaveBeenCalledOnce();
     expect(mockRedirect).toHaveBeenCalledOnce();
-    expect(mockRedirect).toHaveBeenCalledWith('http://clinica-demo.localhost:4000/dashboard');
+    expect(mockRedirect).toHaveBeenCalledWith('http://clinica-demo.localhost:3020/dashboard');
     const resp = response as unknown as ReturnType<typeof createMockResponse>;
     expect(resp.cookies.set).toHaveBeenCalledWith(
       'access_token',
@@ -159,7 +159,7 @@ describe('proxy — auth guard', () => {
     mockFetch.mockResolvedValue({ ok: false } as Response);
 
     const response = await proxy(
-      makeRequest({ host: 'clinica-demo.localhost:4000', refreshToken: 'expired-refresh' }),
+      makeRequest({ host: 'clinica-demo.localhost:3020', refreshToken: 'expired-refresh' }),
     );
 
     expect(mockRedirect).toHaveBeenCalledOnce();
@@ -174,7 +174,7 @@ describe('proxy — auth guard', () => {
     mockFetch.mockRejectedValue(new Error('Network error'));
 
     const response = await proxy(
-      makeRequest({ host: 'clinica-demo.localhost:4000', refreshToken: 'valid-refresh' }),
+      makeRequest({ host: 'clinica-demo.localhost:3020', refreshToken: 'valid-refresh' }),
     );
 
     expect(mockRedirect).toHaveBeenCalledOnce();

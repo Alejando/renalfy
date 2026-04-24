@@ -103,7 +103,7 @@ Same TDD cycle. The user drawer has additional complexity (role-dependent locati
 // apps/web/lib/api.ts  (new utility)
 import { cookies } from 'next/headers';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4001/api';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const cookieStore = await cookies();

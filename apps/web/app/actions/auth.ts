@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { AuthTokensSchema, ChangePasswordSchema, LoginSchema } from '@repo/types';
 import { getPublicTenant } from '../../lib/api';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4001/api';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 const ACCESS_TOKEN_TTL = 60 * 15; // 15 minutes
 const REFRESH_TOKEN_TTL_DEFAULT = 60 * 60 * 24 * 7; // 7 days
 const REFRESH_TOKEN_TTL_EXTENDED = 60 * 60 * 24 * 30; // 30 days (remember me)
