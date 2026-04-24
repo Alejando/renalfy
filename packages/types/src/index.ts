@@ -9,3 +9,4 @@ export * from './appointments.schemas.js';
 export * from './clinical-templates.schemas.js';
 export * from './receipts.schemas.js';
 export * from './companies-plans.schemas.js';
+export * from './products.schemas.js';

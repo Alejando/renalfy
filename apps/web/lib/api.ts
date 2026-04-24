@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { PublicTenantResponseSchema, type PublicTenantResponse } from '@repo/types';
 
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4001/api';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 
 /**
  * Authenticated API fetch — reads access_token cookie and attaches Bearer header.

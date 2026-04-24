@@ -1,8 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { LocationsService } from './locations.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { StockService } from '../stock/stock.service.js';
 
-// Prevent Prisma from loading native binaries / connecting to DB during unit tests
 jest.mock('@prisma/adapter-pg', () => ({
   PrismaPg: jest.fn().mockImplementation(() => ({})),
 }));
@@ -26,6 +26,17 @@ const mockLocation = {
   updatedAt: new Date(),
 };
 
+function makeStockService(
+  overrides: Record<string, unknown> = {},
+): StockService {
+  return {
+    hasStockInLocation: jest
+      .fn()
+      .mockResolvedValue({ hasStock: false, products: [] }),
+    ...overrides,
+  } as unknown as StockService;
+}
+
 function makePrisma(overrides: Record<string, unknown> = {}): PrismaService {
   return {
     location: {
@@ -33,6 +44,9 @@ function makePrisma(overrides: Record<string, unknown> = {}): PrismaService {
       findMany: jest.fn().mockResolvedValue([mockLocation]),
       findFirst: jest.fn().mockResolvedValue(mockLocation),
       update: jest.fn().mockResolvedValue(mockLocation),
+    },
+    locationStock: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     ...overrides,
   } as unknown as PrismaService;
@@ -42,7 +56,8 @@ describe('LocationsService', () => {
   describe('create', () => {
     it('should create a location with the tenantId from the caller', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await service.create(
         { name: 'Sucursal Centro', address: 'Av. Principal 123' },
@@ -60,7 +75,8 @@ describe('LocationsService', () => {
 
     it('should return the created location', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       const result = await service.create(
         { name: 'Sucursal Centro' },
@@ -74,7 +90,8 @@ describe('LocationsService', () => {
   describe('findAll', () => {
     it('should return only locations of the tenant', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await service.findAll(TENANT_ID, null);
 
@@ -85,7 +102,8 @@ describe('LocationsService', () => {
 
     it('should filter by locationId when provided (MANAGER/STAFF)', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await service.findAll(TENANT_ID, LOCATION_ID);
 
@@ -98,7 +116,8 @@ describe('LocationsService', () => {
   describe('findOne', () => {
     it('should return the location when it belongs to the tenant', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       const result = await service.findOne(LOCATION_ID, TENANT_ID, null);
 
@@ -114,7 +133,8 @@ describe('LocationsService', () => {
           update: jest.fn(),
         },
       });
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await expect(
         service.findOne(LOCATION_ID, OTHER_TENANT_ID, null),
@@ -130,7 +150,8 @@ describe('LocationsService', () => {
           update: jest.fn(),
         },
       });
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await expect(
         service.findOne(OTHER_LOCATION_ID, TENANT_ID, LOCATION_ID),
@@ -141,7 +162,8 @@ describe('LocationsService', () => {
   describe('update', () => {
     it('should update the location when it belongs to the tenant', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await service.update(LOCATION_ID, { name: 'Nuevo nombre' }, TENANT_ID);
 
@@ -160,7 +182,8 @@ describe('LocationsService', () => {
           update: jest.fn().mockRejectedValue({ code: 'P2025' }),
         },
       });
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await expect(
         service.update(LOCATION_ID, { name: 'X' }, OTHER_TENANT_ID),
@@ -169,16 +192,41 @@ describe('LocationsService', () => {
   });
 
   describe('remove', () => {
-    it('should soft delete by setting status to inactive', async () => {
+    it('should soft delete by setting status to inactive when no stock exists', async () => {
       const prisma = makePrisma();
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService({
+        hasStockInLocation: jest
+          .fn()
+          .mockResolvedValue({ hasStock: false, products: [] }),
+      });
+      const service = new LocationsService(prisma, stockService);
 
       await service.remove(LOCATION_ID, TENANT_ID);
 
+      expect(prisma.locationStock.deleteMany).toHaveBeenCalledWith({
+        where: { locationId: LOCATION_ID, tenantId: TENANT_ID, quantity: 0 },
+      });
       expect(prisma.location.update).toHaveBeenCalledWith({
         where: { id: LOCATION_ID, tenantId: TENANT_ID },
         data: { status: 'inactive' },
       });
+    });
+
+    it('should throw ConflictException when location has stock > 0', async () => {
+      const prisma = makePrisma();
+      const stockService = makeStockService({
+        hasStockInLocation: jest.fn().mockResolvedValue({
+          hasStock: true,
+          products: [
+            { productId: 'prod-1', productName: 'Eritropoyetina', quantity: 5 },
+          ],
+        }),
+      });
+      const service = new LocationsService(prisma, stockService);
+
+      await expect(service.remove(LOCATION_ID, TENANT_ID)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should throw NotFoundException when location does not belong to tenant', async () => {
@@ -190,7 +238,8 @@ describe('LocationsService', () => {
           update: jest.fn().mockRejectedValue({ code: 'P2025' }),
         },
       });
-      const service = new LocationsService(prisma);
+      const stockService = makeStockService();
+      const service = new LocationsService(prisma, stockService);
 
       await expect(
         service.remove(LOCATION_ID, OTHER_TENANT_ID),

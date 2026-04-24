@@ -55,6 +55,20 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return client.$transaction(fn);
   }
 
+  async $executeRaw(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<number> {
+    return client.$executeRaw(strings, ...values);
+  }
+
+  async $queryRaw<T>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T> {
+    return client.$queryRaw<T>(strings, ...values);
+  }
+
   /**
    * Establece el tenant activo para la conexión actual.
    * PostgreSQL usará este valor para aplicar las políticas RLS en todas las

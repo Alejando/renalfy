@@ -15,7 +15,7 @@ Como visitante que llega a `clinica-centro.renalfy.app`, quiero ver una página 
 
 **Why this priority**: Es el primer punto de contacto del usuario final con el producto. Sin esta página, el subdominio sirve un 404 o contenido genérico, lo cual rompe la propuesta de valor multi-tenant.
 
-**Independent Test**: Levantar el dev server con un tenant seeded en la BD, navegar a `localhost:4000` con el header `X-Tenant-Slug: clinica-centro` (simulando el subdominio) y verificar que el nombre, logo y colores de la clínica aparecen en la página.
+**Independent Test**: Levantar el dev server con un tenant seeded en la BD, navegar a `localhost:3020` con el header `X-Tenant-Slug: clinica-centro` (simulando el subdominio) y verificar que el nombre, logo y colores de la clínica aparecen en la página.
 
 **Acceptance Scenarios**:
 
@@ -38,7 +38,7 @@ Como sistema, debo identificar el tenant desde el subdominio del request y poner
 **Acceptance Scenarios**:
 
 1. **Given** un request con `Host: clinica-norte.renalfy.app`, **When** el middleware procesa la request, **Then** inyecta `x-tenant-slug: clinica-norte` en los headers hacia el Server Component.
-2. **Given** un request con `Host: localhost:4000` (dev), **When** el middleware procesa la request, **Then** no inyecta tenant (o usa un slug de desarrollo configurable).
+2. **Given** un request con `Host: localhost:3020` (dev), **When** el middleware procesa la request, **Then** no inyecta tenant (o usa un slug de desarrollo configurable).
 3. **Given** un request con `Host: renalfy.app` (dominio raíz, sin subdominio), **When** el middleware procesa la request, **Then** redirige a una página de marketing o muestra contenido genérico de la plataforma.
 4. **Given** un subdominio válido, **When** el middleware lo detecta, **Then** también inyecta el header `X-Tenant-ID` con el UUID del tenant (necesario para auth en login posterior).
 

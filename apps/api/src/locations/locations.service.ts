@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { CreateLocationDto, UpdateLocationDto } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StockService } from '../stock/stock.service.js';
 
 @Injectable()
 export class LocationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly stockService: StockService,
+  ) {}
 
   async create(dto: CreateLocationDto, tenantId: string) {
     return this.prisma.location.create({
@@ -53,6 +61,19 @@ export class LocationsService {
   }
 
   async remove(id: string, tenantId: string) {
+    const stockCheck = await this.stockService.hasStockInLocation(id, tenantId);
+    if (stockCheck.hasStock) {
+      throw new ConflictException({
+        message:
+          'Cannot delete location: products with stock must be relocated first',
+        products: stockCheck.products,
+      });
+    }
+
+    await this.prisma.locationStock.deleteMany({
+      where: { locationId: id, tenantId, quantity: 0 },
+    });
+
     try {
       return await this.prisma.location.update({
         where: { id, tenantId },

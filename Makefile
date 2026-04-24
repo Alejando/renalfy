@@ -1,4 +1,4 @@
-.PHONY: help dev db db-stop db-reset migrate seed api web stop restart test lint types types-build
+.PHONY: help dev api web stop restart migrate seed studio db-setup test lint types check types-build
 
 SHELL := /bin/bash
 NVM_SH := $(HOME)/.nvm/nvm.sh
@@ -13,15 +13,15 @@ help:
 	@echo ""
 	@echo "  Entorno"
 	@echo "  -------"
-	@echo "  make dev        Levanta todo: DB + API + Web en paralelo"
-	@echo "  make stop       Mata los procesos en puertos 4000 y 4001"
+	@echo "  make dev        Levanta API (:3019) + Web (:3020) en paralelo"
+	@echo "  make api        Levanta solo la API en :3019"
+	@echo "  make web        Levanta solo el Web en :3020"
+	@echo "  make stop       Mata los procesos en puertos 3019 y 3020"
 	@echo "  make restart    stop + dev"
-	@echo "  make db         Levanta solo PostgreSQL (puerto 5433)"
-	@echo "  make db-stop    Detiene y elimina los contenedores"
-	@echo "  make db-reset   Elimina el volumen y reinicia la BD desde cero"
 	@echo ""
-	@echo "  Base de datos"
-	@echo "  -------------"
+	@echo "  Base de datos (shared_postgres — puerto 5434)"
+	@echo "  -----------------------------------------------"
+	@echo "  make db-setup   Crea la BD renalfy y el usuario renalfy_app (primera vez)"
 	@echo "  make migrate    Aplica migraciones pendientes"
 	@echo "  make seed       Inserta datos de desarrollo"
 	@echo "  make studio     Abre Prisma Studio en el browser"
@@ -36,26 +36,26 @@ help:
 
 # ─── Entorno ──────────────────────────────────────────────────────────────────
 
-dev: db
-	@echo "→ Levantando API y Web..."
+dev:
+	@echo "→ Levantando API (:3019) y Web (:3020)..."
 	@$(MAKE) -j2 api web
 
-db:
-	@echo "→ Levantando PostgreSQL en puerto 5433..."
-	docker compose up -d postgres
-	@echo "→ Esperando a que la BD esté lista..."
-	@until docker exec renalfy-db pg_isready -U renalfy -q; do sleep 1; done
-	@echo "✓ PostgreSQL listo"
+stop:
+	@echo "→ Deteniendo servidores en puertos 3019 y 3020..."
+	@lsof -ti:3019,3020 | xargs kill -9 2>/dev/null || true
+	@echo "✓ Servidores detenidos"
 
-db-stop:
-	docker compose down
-
-db-reset:
-	docker compose down -v
-	$(MAKE) db
-	$(MAKE) migrate
+restart: stop dev
 
 # ─── Base de datos ────────────────────────────────────────────────────────────
+
+db-setup:
+	@echo "→ Configurando BD renalfy en shared_postgres (puerto 5434)..."
+	@docker exec shared_postgres psql -U postgres -tc \
+		"SELECT 1 FROM pg_database WHERE datname='renalfy'" | grep -q 1 \
+		|| docker exec shared_postgres psql -U postgres -c "CREATE DATABASE renalfy"
+	@docker exec -i shared_postgres psql -U postgres -d renalfy < docker/init.sql 2>/dev/null || true
+	@echo "✓ BD lista — corre 'make migrate' para aplicar el schema"
 
 types-build:
 	@echo "→ Compilando @repo/types..."
@@ -74,19 +74,12 @@ studio:
 
 # ─── Servidores ───────────────────────────────────────────────────────────────
 
-stop:
-	@echo "→ Deteniendo servidores en puertos 4000 y 4001..."
-	@lsof -ti:4000,4001 | xargs kill -9 2>/dev/null || true
-	@echo "✓ Servidores detenidos"
-
-restart: stop dev
-
 api:
-	@echo "→ Iniciando API en :4001..."
+	@echo "→ Iniciando API en :3019..."
 	$(node_use) && pnpm --filter api dev
 
 web:
-	@echo "→ Iniciando Web en :4000..."
+	@echo "→ Iniciando Web en :3020..."
 	$(node_use) && pnpm --filter web dev
 
 # ─── Calidad ──────────────────────────────────────────────────────────────────

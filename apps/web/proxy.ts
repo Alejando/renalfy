@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 const ROOT_DOMAIN = 'renalfy.app';
-const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4001/api';
+const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 const ACCESS_TOKEN_TTL = 60 * 15; // 15 minutes
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -12,9 +12,9 @@ const PUBLIC_PATHS = new Set(['/', '/login', '/forgot-password']);
  * Extrae el slug del tenant desde el hostname.
  *
  * Soporta:
- *   clinica-demo.localhost:4000  → "clinica-demo"  (desarrollo local)
+ *   clinica-demo.localhost:3020  → "clinica-demo"  (desarrollo local)
  *   clinica-demo.renalfy.app     → "clinica-demo"  (producción)
- *   localhost:4000               → null             (dominio raíz, marketing)
+ *   localhost:3020               → null             (dominio raíz, marketing)
  *   renalfy.app                  → null             (dominio raíz, marketing)
  */
 export function extractSlug(host: string): string | null {
@@ -90,7 +90,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   if (slug) {
-    // Rewrite interno: el usuario ve clinica-demo.localhost:4000/login
+    // Rewrite interno: el usuario ve clinica-demo.localhost:3020/login
     // pero Next.js renderiza /tenants/clinica-demo/login
     const url = request.nextUrl.clone();
     url.pathname = `/tenants/${slug}${url.pathname}`;
