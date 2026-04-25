@@ -36,9 +36,9 @@ type PrismaProduct = {
   tenantId: string;
   name: string;
   brand: string | null;
-  category: string | null;
   packageQty: number;
   globalAlert: number;
+  category?: { name: string } | null;
 };
 
 function buildLocationStockResponse(
@@ -59,7 +59,7 @@ function buildLocationStockResponse(
     packageQty: row.packageQty,
     productName: product.name,
     productBrand: product.brand,
-    productCategory: product.category,
+    productCategory: product.category?.name ?? null,
     locationName,
     effectiveAlertLevel,
     isBelowAlert:
@@ -104,7 +104,9 @@ export class StockService {
         OR: [
           { name: { contains: query.search, mode: 'insensitive' } },
           { brand: { contains: query.search, mode: 'insensitive' } },
-          { category: { contains: query.search, mode: 'insensitive' } },
+          {
+            category: { name: { contains: query.search, mode: 'insensitive' } },
+          },
         ],
       };
     }
@@ -118,7 +120,7 @@ export class StockService {
               id: true,
               name: true,
               brand: true,
-              category: true,
+              category: { select: { name: true } },
               packageQty: true,
               globalAlert: true,
               tenantId: true,

@@ -26,6 +26,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   readonly company = client.company;
   readonly plan = client.plan;
   readonly product = client.product;
+  readonly productCategory = client.productCategory;
   readonly locationStock = client.locationStock;
   readonly supplier = client.supplier;
   readonly supplierProduct = client.supplierProduct;

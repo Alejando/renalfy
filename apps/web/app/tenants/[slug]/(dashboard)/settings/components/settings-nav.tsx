@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: '/settings/locations', label: 'Sucursales' },
   { href: '/settings/users', label: 'Usuarios' },
   { href: '/settings/service-types', label: 'Tipos de servicio' },
+  { href: '/settings/categories', label: 'Categorías' },
 ] as const;
 
 export function SettingsNav() {

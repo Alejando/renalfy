@@ -72,6 +72,8 @@ export const ConsentTypeSchema = z.enum([
   'DATA_SHARING',
 ]);
 
+export const ProductTypeSchema = z.enum(['SALE', 'CONSUMABLE']);
+
 // Inferred types
 export type UserRole = z.infer<typeof UserRoleSchema>;
 export type UserStatus = z.infer<typeof UserStatusSchema>;
@@ -88,3 +90,4 @@ export type MovementType = z.infer<typeof MovementTypeSchema>;
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 export type SaleStatus = z.infer<typeof SaleStatusSchema>;
 export type ConsentType = z.infer<typeof ConsentTypeSchema>;
+export type ProductType = z.infer<typeof ProductTypeSchema>;

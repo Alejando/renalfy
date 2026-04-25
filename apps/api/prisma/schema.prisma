@@ -287,22 +287,41 @@ enum PlanStatus {
 // MODULE 3 — INVENTORY
 // ─────────────────────────────────────────────
 
+enum ProductType {
+  SALE
+  CONSUMABLE
+}
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([tenantId, name])
+}
+
 model Product {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   tenantId      String
   name          String
   brand         String?
-  category      String?
+  productType   ProductType @default(SALE)
+  categoryId    String?
   description   String?
-  purchasePrice Decimal  @db.Decimal(10, 2)
-  salePrice     Decimal  @db.Decimal(10, 2)
-  packageQty    Int      @default(1)
-  globalAlert   Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  purchasePrice Decimal     @db.Decimal(10, 2)
+  salePrice     Decimal     @db.Decimal(10, 2)
+  packageQty    Int         @default(1)
+  globalAlert   Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  locationStocks LocationStock[]
-  supplierLinks  SupplierProduct[]
+  category        ProductCategory? @relation(fields: [categoryId], references: [id])
+  locationStocks  LocationStock[]
+  supplierLinks   SupplierProduct[]
 }
 
 model LocationStock {

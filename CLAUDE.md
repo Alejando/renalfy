@@ -899,6 +899,10 @@ Para poder correr el script de migración de SUTR, deben estar listos: **Sprints
 ## Active Technologies
 - TypeScript / Node.js 25 + NestJS, Prisma 7, nestjs-zod, `@repo/types` (012-products-stock-backend)
 - PostgreSQL 16 with RLS — `Product`, `LocationStock` tables with CRUD, stock management, bulk operations (012-products-stock-backend)
+- TypeScript 5 + React 19 (Next.js 16, App Router) + shadcn/ui, Tailwind CSS v4, Vitest, React Testing Library, @hookform/resolvers/zod, @repo/types (schemas ya definidos en Sprint 15) (013-sprint-modulo-productos-stock)
+- N/A — este sprint no toca base de datos ni Prisma (013-sprint-modulo-productos-stock)
+- TypeScript 5 + NestJS (backend) / React 19 + Next.js 16 App Router (frontend) + Prisma 7, nestjs-zod, @repo/types, shadcn/ui, Tailwind CSS v4, Vitest, React Testing Library (014-sprint-dulo-proveedores)
+- PostgreSQL 16 con RLS — migraciones sobre tablas existentes + actualización de enum (014-sprint-dulo-proveedores)
 
 ## Recent Changes
 - 012-products-stock-backend: Products & Stock backend fully implemented with 59 tasks completed, 51 unit tests, 39 E2E tests

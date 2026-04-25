@@ -22,7 +22,8 @@ type PrismaProduct = {
   tenantId: string;
   name: string;
   brand: string | null;
-  category: string | null;
+  productType: string;
+  categoryId: string | null;
   description: string | null;
   purchasePrice: { toString(): string };
   salePrice: { toString(): string };
@@ -30,6 +31,7 @@ type PrismaProduct = {
   globalAlert: number;
   createdAt: Date;
   updatedAt: Date;
+  category?: { name: string } | null;
 };
 
 function buildProductResponse(product: PrismaProduct): ProductResponse {
@@ -38,7 +40,9 @@ function buildProductResponse(product: PrismaProduct): ProductResponse {
     tenantId: product.tenantId,
     name: product.name,
     brand: product.brand,
-    category: product.category,
+    productType: product.productType as ProductResponse['productType'],
+    categoryId: product.categoryId,
+    categoryName: product.category?.name ?? null,
     description: product.description,
     purchasePrice: product.purchasePrice.toString(),
     salePrice: product.salePrice.toString(),
@@ -75,18 +79,29 @@ export class ProductsService {
       );
     }
 
+    if (dto.categoryId) {
+      const category = await this.prisma.productCategory.findFirst({
+        where: { id: dto.categoryId, tenantId },
+      });
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+    }
+
     const product = await this.prisma.product.create({
       data: {
         tenantId,
         name: dto.name,
         brand: dto.brand ?? null,
-        category: dto.category ?? null,
+        productType: dto.productType ?? 'SALE',
+        categoryId: dto.categoryId ?? null,
         description: dto.description ?? null,
         purchasePrice: dto.purchasePrice,
         salePrice: dto.salePrice,
         packageQty: dto.packageQty ?? 1,
         globalAlert: dto.globalAlert ?? 0,
       },
+      include: { category: { select: { name: true } } },
     });
 
     return buildProductResponse(product as unknown as PrismaProduct);
@@ -107,12 +122,15 @@ export class ProductsService {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
         { brand: { contains: query.search, mode: 'insensitive' } },
-        { category: { contains: query.search, mode: 'insensitive' } },
       ];
     }
 
-    if (query.category) {
-      where.category = query.category;
+    if (query.categoryId) {
+      where.categoryId = query.categoryId;
+    }
+
+    if (query.productType) {
+      where.productType = query.productType;
     }
 
     const [products, total] = await Promise.all([
@@ -120,6 +138,7 @@ export class ProductsService {
         where,
         skip: (page - 1) * limit,
         take: limit,
+        include: { category: { select: { name: true } } },
         orderBy: { [sortBy]: sortOrder },
       }),
       this.prisma.product.count({ where }),
@@ -140,6 +159,7 @@ export class ProductsService {
   ): Promise<ProductDetailResponse> {
     const product = await this.prisma.product.findFirst({
       where: { id, tenantId },
+      include: { category: { select: { name: true } } },
     });
 
     if (!product) {
@@ -174,15 +194,19 @@ export class ProductsService {
     return { ...response, stock };
   }
 
-  async findCategories(tenantId: string): Promise<string[]> {
-    const rows = await this.prisma.product.findMany({
-      where: { tenantId, category: { not: null } },
-      select: { category: true },
-      distinct: ['category'],
-      orderBy: { category: 'asc' },
+  async findCategories(
+    tenantId: string,
+  ): Promise<Array<{ id: string; name: string }>> {
+    const rows = await this.prisma.productCategory.findMany({
+      where: { tenantId },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     });
 
-    return rows.map((r: { category: string | null }) => r.category as string);
+    return rows.map((r: { id: string; name: string }) => ({
+      id: r.id,
+      name: r.name,
+    }));
   }
 
   async update(
@@ -211,10 +235,20 @@ export class ProductsService {
       }
     }
 
+    if (dto.categoryId !== undefined && dto.categoryId !== null) {
+      const category = await this.prisma.productCategory.findFirst({
+        where: { id: dto.categoryId, tenantId },
+      });
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.brand !== undefined) updateData.brand = dto.brand;
-    if (dto.category !== undefined) updateData.category = dto.category;
+    if (dto.productType !== undefined) updateData.productType = dto.productType;
+    if (dto.categoryId !== undefined) updateData.categoryId = dto.categoryId;
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.purchasePrice !== undefined)
       updateData.purchasePrice = dto.purchasePrice;
@@ -225,6 +259,7 @@ export class ProductsService {
     const updated = await this.prisma.product.update({
       where: { id },
       data: updateData,
+      include: { category: { select: { name: true } } },
     });
 
     return buildProductResponse(updated as unknown as PrismaProduct);

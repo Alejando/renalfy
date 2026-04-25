@@ -1,4 +1,21 @@
 import { z } from 'zod';
+import { ProductTypeSchema } from './enums.js';
+
+// ────────────────────────────────────────────────────────────────────────────
+// ProductCategory schemas
+// ────────────────────────────────────────────────────────────────────────────
+
+export const CreateProductCategorySchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio'),
+});
+
+export const ProductCategoryResponseSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  name: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
 
 // ────────────────────────────────────────────────────────────────────────────
 // Product schemas
@@ -7,7 +24,8 @@ import { z } from 'zod';
 export const CreateProductSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
   brand: z.string().optional(),
-  category: z.string().optional(),
+  productType: ProductTypeSchema.default('SALE'),
+  categoryId: z.string().uuid().nullable().optional(),
   description: z.string().optional(),
   purchasePrice: z
     .string()
@@ -22,7 +40,8 @@ export const CreateProductSchema = z.object({
 export const UpdateProductSchema = z.object({
   name: z.string().min(1).optional(),
   brand: z.string().nullable().optional(),
-  category: z.string().nullable().optional(),
+  productType: ProductTypeSchema.optional(),
+  categoryId: z.string().uuid().nullable().optional(),
   description: z.string().nullable().optional(),
   purchasePrice: z
     .string()
@@ -40,7 +59,8 @@ export const ProductQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
-  category: z.string().optional(),
+  categoryId: z.string().uuid().optional(),
+  productType: ProductTypeSchema.optional(),
   sortBy: z
     .enum(['name', 'purchasePrice', 'salePrice'])
     .default('name'),
@@ -52,7 +72,9 @@ export const ProductResponseSchema = z.object({
   tenantId: z.string().uuid(),
   name: z.string(),
   brand: z.string().nullable(),
-  category: z.string().nullable(),
+  productType: ProductTypeSchema,
+  categoryId: z.string().uuid().nullable(),
+  categoryName: z.string().nullable(),
   description: z.string().nullable(),
   purchasePrice: z.string(),
   salePrice: z.string(),
@@ -207,6 +229,12 @@ export const PaginatedStockSummaryResponseSchema = z.object({
 // Inferred types
 // ────────────────────────────────────────────────────────────────────────────
 
+export type CreateProductCategoryDto = z.infer<
+  typeof CreateProductCategorySchema
+>;
+export type ProductCategoryResponse = z.infer<
+  typeof ProductCategoryResponseSchema
+>;
 export type CreateProductDto = z.infer<typeof CreateProductSchema>;
 export type UpdateProductDto = z.infer<typeof UpdateProductSchema>;
 export type ProductQuery = z.infer<typeof ProductQuerySchema>;
