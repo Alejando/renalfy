@@ -5,13 +5,17 @@ set -e
 JSON_MODE=false
 SHORT_NAME=""
 BRANCH_NUMBER=""
+NO_BRANCH=false
 ARGS=()
 i=1
 while [ $i -le $# ]; do
     arg="${!i}"
     case "$arg" in
-        --json) 
-            JSON_MODE=true 
+        --json)
+            JSON_MODE=true
+            ;;
+        --no-branch)
+            NO_BRANCH=true
             ;;
         --short-name)
             if [ $((i + 1)) -gt $# ]; then
@@ -279,9 +283,8 @@ if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
     >&2 echo "[specify] Truncated to: $BRANCH_NAME (${#BRANCH_NAME} bytes)"
 fi
 
-if [ "$HAS_GIT" = true ]; then
+if [ "$NO_BRANCH" = false ] && [ "$HAS_GIT" = true ]; then
     if ! git checkout -b "$BRANCH_NAME" 2>/dev/null; then
-        # Check if branch already exists
         if git branch --list "$BRANCH_NAME" | grep -q .; then
             >&2 echo "Error: Branch '$BRANCH_NAME' already exists. Please use a different feature name or specify a different number with --number."
             exit 1
@@ -290,7 +293,7 @@ if [ "$HAS_GIT" = true ]; then
             exit 1
         fi
     fi
-else
+elif [ "$HAS_GIT" != true ]; then
     >&2 echo "[specify] Warning: Git repository not detected; skipped branch creation for $BRANCH_NAME"
 fi
 
