@@ -208,11 +208,21 @@ function makePrisma(
     location: {
       findUnique: jest.fn().mockResolvedValue(mockLocation),
       findFirstOrThrow: jest.fn().mockResolvedValue(mockLocation),
+      findMany: jest.fn().mockResolvedValue([mockLocation]),
+    },
+    supplier: {
+      findMany: jest.fn().mockResolvedValue([mockSupplier]),
+      findFirstOrThrow: jest.fn().mockResolvedValue(mockSupplier),
     },
     purchase: {
       findMany: jest.fn().mockResolvedValue([mockPurchaseWithItems]),
       count: jest.fn().mockResolvedValue(1),
       findFirstOrThrow: jest.fn().mockResolvedValue(mockPurchase),
+    },
+    purchaseItem: {
+      groupBy: jest
+        .fn()
+        .mockResolvedValue([{ purchaseId: PURCHASE_ID, _count: 1 }]),
     },
     $transaction: jest
       .fn()

@@ -33,6 +33,7 @@ function buildPurchaseResponse(purchase: {
   supplierId: string;
   locationId: string;
   userId: string;
+  purchaseOrderId: string;
   date: Date;
   amount: unknown;
   notes: string | null;
@@ -47,6 +48,7 @@ function buildPurchaseResponse(purchase: {
     supplierId: purchase.supplierId,
     locationId: purchase.locationId,
     userId: purchase.userId,
+    purchaseOrderId: purchase.purchaseOrderId,
     date: purchase.date,
     amount: toString(purchase.amount),
     notes: purchase.notes,
@@ -133,7 +135,9 @@ export class PurchasesService {
 
       // Validate accumulated quantity per item does not exceed ordered quantity
       const previousPurchaseItems = await tx.purchaseItem.findMany({
-        where: { purchaseOrderId: dto.purchaseOrderId },
+        where: {
+          purchaseOrderItem: { purchaseOrderId: dto.purchaseOrderId },
+        },
       });
 
       const previousByPoItemId = new Map(
@@ -200,12 +204,18 @@ export class PurchasesService {
           amount: totalAmount.toFixed(2),
           notes: dto.notes,
         },
-        include: {
-          supplier: { select: { id: true, name: true } },
-          location: { select: { id: true, name: true } },
-          items: { select: { id: true } },
-        },
       });
+
+      const [supplier, location] = await Promise.all([
+        tx.supplier.findFirstOrThrow({
+          where: { id: purchaseOrder.supplierId, tenantId },
+          select: { id: true, name: true },
+        }),
+        tx.location.findFirstOrThrow({
+          where: { id: dto.locationId },
+          select: { id: true, name: true },
+        }),
+      ]);
 
       // Create purchase items and inventory movement items
       const movementItems: Array<{
@@ -244,6 +254,7 @@ export class PurchasesService {
         } else {
           await tx.locationStock.create({
             data: {
+              tenantId,
               productId: item.productId,
               locationId: dto.locationId,
               quantity: stockDelta,
@@ -291,7 +302,9 @@ export class PurchasesService {
 
       // Calculate total received so far (including this purchase)
       const totalReceived = await tx.purchaseItem.aggregate({
-        where: { purchaseOrderId: dto.purchaseOrderId },
+        where: {
+          purchaseOrderItem: { purchaseOrderId: dto.purchaseOrderId },
+        },
         _sum: { quantityReceived: true },
       });
 
@@ -314,6 +327,8 @@ export class PurchasesService {
       // Return updated purchase with correct item count
       return buildPurchaseResponse({
         ...purchase,
+        supplier,
+        location,
         itemCount: itemsToCreate.length,
       });
     });
@@ -353,20 +368,49 @@ export class PurchasesService {
         skip,
         take: limit,
         orderBy: { date: 'desc' },
-        include: {
-          supplier: { select: { id: true, name: true } },
-          location: { select: { id: true, name: true } },
-          items: { select: { id: true } },
-        },
       }),
       this.prisma.purchase.count({ where }),
     ]);
+
+    const purchaseIds = data.map((p) => p.id);
+    const supplierIds = [...new Set(data.map((p) => p.supplierId))];
+    const locationIds = [...new Set(data.map((p) => p.locationId))];
+
+    const [suppliers, locations, itemCounts] = await Promise.all([
+      this.prisma.supplier.findMany({
+        where: { id: { in: supplierIds } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.location.findMany({
+        where: { id: { in: locationIds } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.purchaseItem.groupBy({
+        by: ['purchaseId'],
+        where: { purchaseId: { in: purchaseIds } },
+        _count: true,
+      }),
+    ]);
+
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s]));
+    const locationMap = new Map(locations.map((l) => [l.id, l]));
+    const itemCountMap = new Map(
+      itemCounts.map((ic) => [ic.purchaseId, ic._count]),
+    );
 
     return {
       data: data.map((purchase) =>
         buildPurchaseResponse({
           ...purchase,
-          itemCount: purchase.items.length,
+          supplier: supplierMap.get(purchase.supplierId) || {
+            id: purchase.supplierId,
+            name: 'Sin proveedor',
+          },
+          location: locationMap.get(purchase.locationId) || {
+            id: purchase.locationId,
+            name: 'Sin sucursal',
+          },
+          itemCount: itemCountMap.get(purchase.id) || 0,
         }),
       ),
       total,
@@ -398,7 +442,7 @@ export class PurchasesService {
           where: { id, tenantId, ...locationWhere },
         });
 
-        const [supplier, location, items] = await Promise.all([
+        const [supplier, location, items] = (await Promise.all([
           tx.supplier.findFirstOrThrow({
             where: { id: purchase.supplierId, tenantId },
           }),
@@ -411,7 +455,15 @@ export class PurchasesService {
               product: { select: { id: true, name: true, brand: true } },
             },
           }),
-        ]);
+        ])) as [
+          any,
+          any,
+          Array<
+            any & {
+              product: { id: string; name: string; brand: string | null };
+            }
+          >,
+        ];
 
         return {
           id: purchase.id,
@@ -419,6 +471,7 @@ export class PurchasesService {
           supplierId: purchase.supplierId,
           locationId: purchase.locationId,
           userId: purchase.userId,
+          purchaseOrderId: purchase.purchaseOrderId,
           date: purchase.date,
           amount: toString(purchase.amount),
           notes: purchase.notes,
