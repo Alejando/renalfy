@@ -37,7 +37,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={cn("font-sans", geist.variable)}>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${manrope.variable}`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${manrope.variable}`}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>
