@@ -50,7 +50,8 @@ export const SupplierStatusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 
 export const PurchaseOrderStatusSchema = z.enum([
   'DRAFT',
-  'ISSUED',
+  'SENT',
+  'CONFIRMED',
   'RECEIVED',
   'CANCELLED',
 ]);

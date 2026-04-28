@@ -4,7 +4,15 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable, from, switchMap, finalize } from 'rxjs';
+import {
+  Observable,
+  from,
+  switchMap,
+  EMPTY,
+  concatWith,
+  ignoreElements,
+  catchError,
+} from 'rxjs';
 import type { Request } from 'express';
 import type { CurrentUserPayload } from '../decorators/current-user.decorator.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -37,11 +45,16 @@ export class TenantInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    // clear$ completes synchronously within the Observable before it closes,
+    // ensuring cleanup happens before NestJS sends the HTTP response and before
+    // the next request can start (eliminates the async finalize race).
+    const clear$ = from(this.prisma.clearTenantContext()).pipe(
+      ignoreElements(),
+      catchError(() => EMPTY),
+    );
+
     return from(this.prisma.setTenantContext(tenantId)).pipe(
-      switchMap(() => next.handle()),
-      finalize(() => {
-        void this.prisma.clearTenantContext();
-      }),
+      switchMap(() => next.handle().pipe(concatWith(clear$))),
     );
   }
 }

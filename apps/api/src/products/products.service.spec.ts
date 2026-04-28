@@ -19,6 +19,7 @@ const PRODUCT_ID = 'product-uuid-1';
 
 const VALID_CREATE_DTO: CreateProductDto = {
   name: 'Eritropoyetina 4000 UI',
+  productType: 'SALE',
   purchasePrice: '150.00',
   salePrice: '200.00',
   packageQty: 1,
@@ -54,6 +55,10 @@ function makePrisma(overrides: Record<string, unknown> = {}): PrismaService {
     },
     locationStock: {
       findMany: jest.fn().mockResolvedValue([]),
+    },
+    productCategory: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
     },
     saleItem: { count: jest.fn().mockResolvedValue(0) },
     purchaseItem: { count: jest.fn().mockResolvedValue(0) },
@@ -122,6 +127,7 @@ describe('ProductsService', () => {
         service.create(
           {
             name: 'Product',
+            productType: 'SALE',
             purchasePrice: '10.00',
             salePrice: '15.00',
             packageQty: 1,
@@ -141,6 +147,7 @@ describe('ProductsService', () => {
         service.create(
           {
             name: 'Product',
+            productType: 'SALE',
             purchasePrice: '10.00',
             salePrice: '15.00',
             packageQty: 1,
@@ -411,13 +418,13 @@ describe('ProductsService', () => {
       await service.findAll(TENANT_ID, {
         page: 1,
         limit: 20,
-        category: 'Medicamentos',
+        categoryId: 'Medicamentos',
       });
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            category: 'Medicamentos',
+            categoryId: 'Medicamentos',
           }),
         }),
       );
@@ -519,38 +526,29 @@ describe('ProductsService', () => {
   describe('findCategories', () => {
     it('should return sorted distinct non-null categories', async () => {
       const prisma = makePrisma({
-        product: {
-          create: jest.fn(),
-          findMany: jest
-            .fn()
-            .mockResolvedValue([
-              { category: 'Insumos' },
-              { category: 'Medicamentos' },
-            ]),
-          findFirst: jest.fn(),
-          findUnique: jest.fn(),
-          count: jest.fn(),
-          update: jest.fn(),
-          delete: jest.fn(),
+        productCategory: {
+          findMany: jest.fn().mockResolvedValue([
+            { id: 'cat-1', name: 'Insumos' },
+            { id: 'cat-2', name: 'Medicamentos' },
+          ]),
+          findFirst: jest.fn().mockResolvedValue(null),
         },
       });
       const service = new ProductsService(prisma);
 
       const result = await service.findCategories(TENANT_ID);
 
-      expect(result).toEqual(['Insumos', 'Medicamentos']);
+      expect(result).toEqual([
+        { id: 'cat-1', name: 'Insumos' },
+        { id: 'cat-2', name: 'Medicamentos' },
+      ]);
     });
 
-    it('should return empty array for tenant with no products', async () => {
+    it('should return empty array for tenant with no categories', async () => {
       const prisma = makePrisma({
-        product: {
-          create: jest.fn(),
+        productCategory: {
           findMany: jest.fn().mockResolvedValue([]),
-          findFirst: jest.fn(),
-          findUnique: jest.fn(),
-          count: jest.fn(),
-          update: jest.fn(),
-          delete: jest.fn(),
+          findFirst: jest.fn().mockResolvedValue(null),
         },
       });
       const service = new ProductsService(prisma);

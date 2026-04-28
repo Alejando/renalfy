@@ -20,6 +20,8 @@ export default async function InventoryLayout({ children }: Props) {
       <nav className="flex items-center gap-1 border-b border-border pb-0 overflow-x-auto">
         <InventoryTab href="/inventory/products" label="Productos" />
         <InventoryTab href="/inventory/stock" label="Stock" />
+        <InventoryTab href="/inventory/suppliers" label="Proveedores" />
+        <InventoryTab href="/inventory/purchase-orders" label="Órdenes" />
         {canViewSummary && (
           <InventoryTab href="/inventory/summary" label="Resumen" />
         )}

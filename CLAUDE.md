@@ -876,9 +876,9 @@ import { PrismaService } from '../prisma/prisma.service';
 | 13 | Módulo 2 — Empresas + Planes (backend) | Back | ✅ Listo | 12 |
 | 14 | UI — Módulo 2: Empresas + Planes | Front | ✅ Listo | 13 |
 | 15 | Módulo 3 — Productos + Stock por sucursal (backend) | Back | ✅ Listo | 12 |
-| 16 | UI — Módulo 3: Productos + Stock | Front | Pendiente | 15 |
-| 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | Pendiente | 15 |
-| 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | Pendiente | 17 |
+| 16 | UI — Módulo 3: Productos + Stock | Front | ✅ Listo | 15 |
+| 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | ✅ Listo | 15 |
+| 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | ✅ Listo | 17 |
 | 19 | Módulo 3 — Compras + Movimientos de inventario (backend) | Back | Pendiente | 17 |
 | 20 | UI — Módulo 3: Compras + Movimientos | Front | Pendiente | 19 |
 | 21 | Módulo 4 — Ventas (backend) | Back | Pendiente | 15 |

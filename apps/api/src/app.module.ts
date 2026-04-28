@@ -18,6 +18,8 @@ import { PlansModule } from './plans/plans.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { StockModule } from './stock/stock.module.js';
 import { ProductCategoriesModule } from './product-categories/product-categories.module.js';
+import { SuppliersModule } from './suppliers/suppliers.module.js';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -43,6 +45,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     ProductsModule,
     StockModule,
     ProductCategoriesModule,
+    SuppliersModule,
+    PurchaseOrdersModule,
   ],
   providers: [
     // JwtAuthGuard runs first (global) so req.user is set before RolesGuard

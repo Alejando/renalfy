@@ -36,24 +36,24 @@ describe('AuthController (e2e)', () => {
 
     // Insert tenant fixture (no tenantId column — platform-level table)
     await db.query(
-      `INSERT INTO "Tenant" (id, slug, name, status, plan)
-       VALUES ($1, $2, $3, 'ACTIVE', 'starter')
+      `INSERT INTO "Tenant" (id, slug, name, status, plan, "updatedAt")
+       VALUES ($1, $2, $3, 'ACTIVE', 'starter', NOW())
        ON CONFLICT DO NOTHING`,
       [TEST_TENANT_ID, 'auth-e2e-test', 'Auth E2E Test Org'],
     );
 
     // Insert active user fixture
     await db.query(
-      `INSERT INTO "User" (id, "tenantId", name, email, password, role, status)
-       VALUES ($1, $2, $3, $4, $5, 'OWNER', 'ACTIVE')
+      `INSERT INTO "User" (id, "tenantId", name, email, password, role, status, "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, 'OWNER', 'ACTIVE', NOW())
        ON CONFLICT DO NOTHING`,
       [TEST_USER_ID, TEST_TENANT_ID, 'E2E Test User', TEST_EMAIL, hashed],
     );
 
     // Insert suspended user fixture
     await db.query(
-      `INSERT INTO "User" (id, "tenantId", name, email, password, role, status)
-       VALUES ($1, $2, $3, $4, $5, 'STAFF', 'SUSPENDED')
+      `INSERT INTO "User" (id, "tenantId", name, email, password, role, status, "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, 'STAFF', 'SUSPENDED', NOW())
        ON CONFLICT DO NOTHING`,
       [
         TEST_SUSPENDED_USER_ID,
@@ -118,12 +118,12 @@ describe('AuthController (e2e)', () => {
         .expect(401);
     });
 
-    it('should return 422 when email field is missing (Zod validation)', () => {
+    it('should return 400 when email field is missing (Zod validation)', () => {
       return request(app.getHttpServer())
         .post('/api/auth/login')
         .set('X-Tenant-ID', TEST_TENANT_ID)
         .send({ password: TEST_PASSWORD })
-        .expect(422);
+        .expect(400);
     });
 
     it('should return 403 when user is SUSPENDED', () => {

@@ -27,6 +27,8 @@ const LOCATION_A2_ID = '00000000-e2e0-4013-a000-000000000105';
 const OWNER_A_EMAIL = 'owner-products-e2e@renalfy.test';
 const MANAGER_A_EMAIL = 'manager-products-e2e@renalfy.test';
 
+const CATEGORY_A_ID = '00000000-e2e0-4013-a000-000000000106';
+
 // Tenant B (for tenant isolation tests)
 const TENANT_B_ID = '00000000-e2e0-4013-a000-000000000201';
 const OWNER_B_ID = '00000000-e2e0-4013-a000-000000000202';
@@ -73,6 +75,13 @@ describe('Products & Stock API (e2e)', () => {
        VALUES ($1, $2, 'E2E Manager A', $3, $4, 'MANAGER', 'ACTIVE', $5, NOW())
        ON CONFLICT DO NOTHING`,
       [MANAGER_A_ID, TENANT_A_ID, MANAGER_A_EMAIL, hashed, LOCATION_A_ID],
+    );
+
+    await db.query(
+      `INSERT INTO "ProductCategory" (id, "tenantId", name, "updatedAt")
+       VALUES ($1, $2, 'Medicamentos', NOW())
+       ON CONFLICT DO NOTHING`,
+      [CATEGORY_A_ID, TENANT_A_ID],
     );
 
     // ─── Tenant B ────────────────────────────────────────────────
@@ -128,6 +137,9 @@ describe('Products & Stock API (e2e)', () => {
     await db.query(`DELETE FROM "Product" WHERE "tenantId" = $1`, [
       TENANT_A_ID,
     ]);
+    await db.query(`DELETE FROM "ProductCategory" WHERE "tenantId" = $1`, [
+      TENANT_A_ID,
+    ]);
     await db.query(`DELETE FROM "User" WHERE "tenantId" = $1`, [TENANT_A_ID]);
     await db.query(`DELETE FROM "Location" WHERE "tenantId" = $1`, [
       TENANT_A_ID,
@@ -157,7 +169,7 @@ describe('Products & Stock API (e2e)', () => {
           .send({
             name: 'Eritropoyetina 4000 UI',
             brand: 'Biotek',
-            category: 'Medicamentos',
+            categoryId: CATEGORY_A_ID,
             purchasePrice: '150.00',
             salePrice: '200.00',
             packageQty: 1,
@@ -245,12 +257,12 @@ describe('Products & Stock API (e2e)', () => {
 
       it('should filter products by category', async () => {
         const res = await request(app.getHttpServer())
-          .get('/api/products?category=Medicamentos')
+          .get(`/api/products?categoryId=${CATEGORY_A_ID}`)
           .set('Authorization', `Bearer ${ownerAToken}`)
           .expect(200);
 
-        const body = res.body as { data: Array<{ category: string }> };
-        expect(body.data.every((p) => p.category === 'Medicamentos')).toBe(
+        const body = res.body as { data: Array<{ categoryName: string }> };
+        expect(body.data.every((p) => p.categoryName === 'Medicamentos')).toBe(
           true,
         );
       });
@@ -267,15 +279,15 @@ describe('Products & Stock API (e2e)', () => {
     });
 
     describe('GET /api/products/categories', () => {
-      it('should return distinct categories sorted', async () => {
+      it('should return categories as objects sorted by name', async () => {
         const res = await request(app.getHttpServer())
           .get('/api/products/categories')
           .set('Authorization', `Bearer ${ownerAToken}`)
           .expect(200);
 
-        const body = res.body as string[];
+        const body = res.body as Array<{ id: string; name: string }>;
         expect(Array.isArray(body)).toBe(true);
-        expect(body).toContain('Medicamentos');
+        expect(body.some((c) => c.name === 'Medicamentos')).toBe(true);
       });
     });
 

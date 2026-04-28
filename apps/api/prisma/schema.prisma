@@ -100,6 +100,7 @@ model Location {
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   users    User[]
   patients Patient[]
+  purchaseOrders PurchaseOrder[]
 }
 
 // ─────────────────────────────────────────────
@@ -322,6 +323,7 @@ model Product {
   category        ProductCategory? @relation(fields: [categoryId], references: [id])
   locationStocks  LocationStock[]
   supplierLinks   SupplierProduct[]
+  purchaseOrderItems PurchaseOrderItem[]
 }
 
 model LocationStock {
@@ -347,11 +349,16 @@ model Supplier {
   contact   String?
   phone     String?
   email     String?
+  address   String?
+  notes     String?
   status    SupplierStatus @default(ACTIVE)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
-  products SupplierProduct[]
+  products    SupplierProduct[]
+  purchaseOrders PurchaseOrder[]
+
+  @@unique([tenantId, name])
 }
 
 enum SupplierStatus {
@@ -365,6 +372,8 @@ model SupplierProduct {
   productId  String
   supplierId String
   price      Decimal  @db.Decimal(10, 2)
+  leadTimeDays Int?
+  createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   product  Product  @relation(fields: [productId], references: [id])
@@ -376,20 +385,26 @@ model SupplierProduct {
 model PurchaseOrder {
   id         String              @id @default(uuid())
   tenantId   String
+  supplierId String
   locationId String
   userId     String
   date       DateTime
   status     PurchaseOrderStatus @default(DRAFT)
+  expectedDate DateTime?
   notes      String?
+  total      Decimal              @db.Decimal(10, 2) @default(0)
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
 
-  items PurchaseOrderItem[]
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  items    PurchaseOrderItem[]
 }
 
 enum PurchaseOrderStatus {
   DRAFT
-  ISSUED
+  SENT
+  CONFIRMED
   RECEIVED
   CANCELLED
 }
@@ -399,8 +414,12 @@ model PurchaseOrderItem {
   purchaseOrderId String
   productId       String
   quantity        Int
+  unitPrice       Decimal @db.Decimal(10, 2)
+  subtotal        Decimal @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
 }
 
 model Purchase {
