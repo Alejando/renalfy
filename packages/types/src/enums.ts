@@ -53,6 +53,8 @@ export const PurchaseOrderStatusSchema = z.enum([
   'SENT',
   'CONFIRMED',
   'RECEIVED',
+  'COMPLETED',
+  'CLOSED',
   'CANCELLED',
 ]);
 

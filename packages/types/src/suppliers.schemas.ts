@@ -119,6 +119,7 @@ export const AddPurchaseOrderItemSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
   unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato de precio inválido'),
+  unitsPerPackage: z.number().int().min(1, 'Unidades por empaque debe ser al menos 1').default(1),
 });
 
 export const UpdatePurchaseOrderItemSchema = z.object({

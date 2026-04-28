@@ -26,8 +26,10 @@ type TransitionMap = Record<PurchaseOrderStatus, PurchaseOrderStatus[]>;
 const ALLOWED_TRANSITIONS: TransitionMap = {
   DRAFT: ['SENT', 'CANCELLED'],
   SENT: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: [],
-  RECEIVED: [],
+  CONFIRMED: ['CANCELLED'],
+  RECEIVED: ['CLOSED'],
+  COMPLETED: [],
+  CLOSED: [],
   CANCELLED: [],
 };
 
@@ -514,6 +516,54 @@ export class PurchaseOrdersService {
     const updated = await this.prisma.purchaseOrder.update({
       where: { id: orderId },
       data: { status },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        location: { select: { id: true, name: true } },
+        items: { select: { id: true } },
+      },
+    });
+
+    return buildOrderResponse({
+      ...updated,
+      itemCount: updated.items.length,
+    });
+  }
+
+  async closePurchaseOrder(
+    tenantId: string,
+    role: string,
+    orderId: string,
+    dto: { notes?: string },
+  ): Promise<PurchaseOrderResponse> {
+    if (role !== 'OWNER' && role !== 'ADMIN') {
+      throw new BadRequestException(
+        'Solo OWNER y ADMIN pueden cerrar órdenes con saldo pendiente',
+      );
+    }
+
+    let order: Awaited<
+      ReturnType<typeof this.prisma.purchaseOrder.findFirstOrThrow>
+    >;
+    try {
+      order = await this.prisma.purchaseOrder.findFirstOrThrow({
+        where: { id: orderId, tenantId },
+      });
+    } catch {
+      throw new NotFoundException(`Orden con ID ${orderId} no encontrada`);
+    }
+
+    if (order.status !== 'RECEIVED') {
+      throw new UnprocessableEntityException(
+        'Solo se pueden cerrar órdenes en estado RECEIVED',
+      );
+    }
+
+    const updated = await this.prisma.purchaseOrder.update({
+      where: { id: orderId },
+      data: {
+        status: 'CLOSED',
+        ...(dto.notes ? { notes: dto.notes } : {}),
+      },
       include: {
         supplier: { select: { id: true, name: true } },
         location: { select: { id: true, name: true } },

@@ -75,7 +75,9 @@ const mockItem = {
   product: mockProduct,
 };
 
-function makeTx(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function makeTx(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   const txItem = {
     ...mockItem,
     quantity: 5,
@@ -142,8 +144,7 @@ function makePrisma(overrides: Record<string, unknown> = {}): PrismaService {
     $transaction: jest
       .fn()
       .mockImplementation(
-        (fn: (tx: Record<string, unknown>) => Promise<unknown>) =>
-          fn(makeTx()),
+        (fn: (tx: Record<string, unknown>) => Promise<unknown>) => fn(makeTx()),
       ),
     ...overrides,
   } as unknown as PrismaService;
@@ -444,22 +445,28 @@ describe('PurchaseOrdersService', () => {
       );
     });
 
-    it('should throw UnprocessableEntityException when CANCELLED from CONFIRMED', async () => {
+    it('should allow CANCELLED from CONFIRMED', async () => {
+      const confirmedOrder = { ...mockOrder, status: 'CONFIRMED' as const };
       const prisma = makePrisma({
         purchaseOrder: {
-          findUniqueOrThrow: jest.fn().mockResolvedValue({
-            ...mockOrder,
-            status: 'CONFIRMED',
-            items: [mockItem],
+          findUniqueOrThrow: jest.fn().mockResolvedValue(confirmedOrder),
+          update: jest.fn().mockResolvedValue({
+            ...confirmedOrder,
+            status: 'CANCELLED',
+            supplier: mockSupplier,
+            location: mockLocation,
+            items: [],
           }),
-          update: jest.fn().mockResolvedValue(mockOrder),
         },
       });
       const service = new PurchaseOrdersService(prisma);
 
-      await expect(
-        service.updateStatus(TENANT_ID, ORDER_ID, 'CANCELLED'),
-      ).rejects.toThrow(UnprocessableEntityException);
+      const result = await service.updateStatus(
+        TENANT_ID,
+        ORDER_ID,
+        'CANCELLED',
+      );
+      expect(result.status).toBe('CANCELLED');
     });
 
     it('should throw UnprocessableEntityException for invalid transition', async () => {
@@ -584,12 +591,14 @@ describe('PurchaseOrdersService', () => {
       let capturedWhere: Record<string, unknown> = {};
       const tx = makeTx({
         purchaseOrder: {
-          findFirstOrThrow: jest.fn().mockImplementation(
-            ({ where }: { where: Record<string, unknown> }) => {
-              capturedWhere = where;
-              return Promise.resolve(mockOrder);
-            },
-          ),
+          findFirstOrThrow: jest
+            .fn()
+            .mockImplementation(
+              ({ where }: { where: Record<string, unknown> }) => {
+                capturedWhere = where;
+                return Promise.resolve(mockOrder);
+              },
+            ),
         },
       });
       const prisma = makePrisma({
@@ -608,6 +617,169 @@ describe('PurchaseOrdersService', () => {
         tenantId: TENANT_ID,
         locationId: LOCATION_ID,
       });
+    });
+  });
+
+  describe('ALLOWED_TRANSITIONS actualizados', () => {
+    it('CONFIRMED no debe transicionar a RECEIVED via updateStatus (solo via purchases service)', async () => {
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue({
+            ...mockOrder,
+            status: 'CONFIRMED',
+            items: [mockItem],
+          }),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await expect(
+        service.updateStatus(TENANT_ID, ORDER_ID, 'RECEIVED'),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('RECEIVED debe permitir transición a CLOSED', async () => {
+      const receivedOrder = { ...mockOrder, status: 'RECEIVED' as const };
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue(receivedOrder),
+          update: jest.fn().mockResolvedValue({
+            ...receivedOrder,
+            status: 'CLOSED',
+            supplier: mockSupplier,
+            location: mockLocation,
+            items: [],
+          }),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      const result = await service.updateStatus(TENANT_ID, ORDER_ID, 'CLOSED');
+      expect(result.status).toBe('CLOSED');
+    });
+
+    it('COMPLETED no debe tener transiciones permitidas', async () => {
+      const completedOrder = { ...mockOrder, status: 'COMPLETED' as const };
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue(completedOrder),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await expect(
+        service.updateStatus(TENANT_ID, ORDER_ID, 'CANCELLED'),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('CLOSED no debe tener transiciones permitidas', async () => {
+      const closedOrder = { ...mockOrder, status: 'CLOSED' as const };
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue(closedOrder),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await expect(
+        service.updateStatus(TENANT_ID, ORDER_ID, 'DRAFT'),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+  });
+
+  describe('closePurchaseOrder', () => {
+    it('debe transicionar orden RECEIVED a CLOSED', async () => {
+      const receivedOrder = { ...mockOrder, status: 'RECEIVED' as const };
+      const closedOrder = { ...receivedOrder, status: 'CLOSED' as const };
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findFirstOrThrow: jest.fn().mockResolvedValue(receivedOrder),
+          update: jest.fn().mockResolvedValue({
+            ...closedOrder,
+            supplier: mockSupplier,
+            location: mockLocation,
+            items: [],
+          }),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      const result = await service.closePurchaseOrder(
+        TENANT_ID,
+        'OWNER',
+        ORDER_ID,
+        {},
+      );
+      expect(result.status).toBe('CLOSED');
+    });
+
+    it('debe lanzar UnprocessableEntityException si la orden no está en RECEIVED', async () => {
+      const draftOrder = { ...mockOrder, status: 'DRAFT' as const };
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findFirstOrThrow: jest.fn().mockResolvedValue(draftOrder),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await expect(
+        service.closePurchaseOrder(TENANT_ID, 'OWNER', ORDER_ID, {}),
+      ).rejects.toThrow(UnprocessableEntityException);
+    });
+
+    it('debe lanzar BadRequestException si el rol es MANAGER', async () => {
+      const service = new PurchaseOrdersService(makePrisma());
+
+      await expect(
+        service.closePurchaseOrder(TENANT_ID, 'MANAGER', ORDER_ID, {}),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe actualizar las notas si se proveen en el DTO', async () => {
+      const receivedOrder = { ...mockOrder, status: 'RECEIVED' as const };
+      const closedOrder = {
+        ...receivedOrder,
+        status: 'CLOSED' as const,
+        notes: 'Proveedor no puede completar',
+      };
+      let capturedData: Record<string, unknown> = {};
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findFirstOrThrow: jest.fn().mockResolvedValue(receivedOrder),
+          update: jest
+            .fn()
+            .mockImplementation(
+              ({ data }: { data: Record<string, unknown> }) => {
+                capturedData = data;
+                return Promise.resolve({
+                  ...closedOrder,
+                  supplier: mockSupplier,
+                  location: mockLocation,
+                  items: [],
+                });
+              },
+            ),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await service.closePurchaseOrder(TENANT_ID, 'OWNER', ORDER_ID, {
+        notes: 'Proveedor no puede completar',
+      });
+      expect(capturedData.notes).toBe('Proveedor no puede completar');
+    });
+
+    it('debe lanzar NotFoundException si la orden no pertenece al tenant', async () => {
+      const prisma = makePrisma({
+        purchaseOrder: {
+          findFirstOrThrow: jest.fn().mockRejectedValue(new Error('not found')),
+        },
+      });
+      const service = new PurchaseOrdersService(prisma);
+
+      await expect(
+        service.closePurchaseOrder(TENANT_ID, 'OWNER', 'non-existent-id', {}),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

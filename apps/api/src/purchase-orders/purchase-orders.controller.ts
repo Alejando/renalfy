@@ -18,6 +18,7 @@ import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
 import { UpdatePurchaseOrderStatusDto } from './dto/update-purchase-order-status.dto.js';
 import { AddPurchaseOrderItemDto } from './dto/add-purchase-order-item.dto.js';
 import { UpdatePurchaseOrderItemDto } from './dto/update-purchase-order-item.dto.js';
+import { ClosePurchaseOrderDto } from './dto/close-purchase-order.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { UserRole } from '@repo/types';
 
@@ -130,6 +131,22 @@ export class PurchaseOrdersController {
       user.tenantId,
       orderId,
       itemId,
+    );
+  }
+
+  @Post(':id/close')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'ADMIN')
+  close(
+    @CurrentUser() user: { tenantId: string; role: UserRole },
+    @Param('id') id: string,
+    @Body() dto: ClosePurchaseOrderDto,
+  ) {
+    return this.purchaseOrdersService.closePurchaseOrder(
+      user.tenantId,
+      user.role,
+      id,
+      dto,
     );
   }
 }

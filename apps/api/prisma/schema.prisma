@@ -324,6 +324,8 @@ model Product {
   locationStocks  LocationStock[]
   supplierLinks   SupplierProduct[]
   purchaseOrderItems PurchaseOrderItem[]
+  purchaseItems   PurchaseItem[]
+  inventoryMovementItems InventoryMovementItem[]
 }
 
 model LocationStock {
@@ -399,6 +401,7 @@ model PurchaseOrder {
   supplier Supplier @relation(fields: [supplierId], references: [id])
   location Location @relation(fields: [locationId], references: [id])
   items    PurchaseOrderItem[]
+  purchases Purchase[]
 }
 
 enum PurchaseOrderStatus {
@@ -406,6 +409,8 @@ enum PurchaseOrderStatus {
   SENT
   CONFIRMED
   RECEIVED
+  COMPLETED
+  CLOSED
   CANCELLED
 }
 
@@ -414,37 +419,59 @@ model PurchaseOrderItem {
   purchaseOrderId String
   productId       String
   quantity        Int
+  unitsPerPackage Int    @default(1)
   unitPrice       Decimal @db.Decimal(10, 2)
   subtotal        Decimal @db.Decimal(10, 2)
   createdAt       DateTime @default(now())
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
   product       Product       @relation(fields: [productId], references: [id])
+  purchaseItems PurchaseItem[]
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model Purchase {
-  id         String   @id @default(uuid())
-  tenantId   String
-  userId     String
-  supplierId String
-  date       DateTime
-  amount     Decimal  @db.Decimal(10, 2)
-  notes      String?
-  createdAt  DateTime @default(now())
+  id              String   @id @default(uuid())
+  tenantId        String
+  locationId      String
+  userId          String
+  supplierId      String
+  purchaseOrderId String
+  date            DateTime
+  amount          Decimal  @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime @default(now())
 
-  items PurchaseItem[]
+  items         PurchaseItem[]
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+
+  @@index([tenantId, date])
+  @@index([locationId])
+  @@index([purchaseOrderId])
 }
 
 model PurchaseItem {
-  id         String  @id @default(uuid())
-  purchaseId String
-  productId  String
-  quantity   Int
-  price      Decimal @db.Decimal(10, 2)
-  tax        Decimal @db.Decimal(10, 2) @default(0)
-  packageQty Int?
+  id                   String  @id @default(uuid())
+  purchaseId           String
+  purchaseOrderItemId  String
+  productId            String
+  quantity             Int
+  quantityReceived     Int
+  unitsPerPackage      Int     @default(1)
+  unitPrice            Decimal @db.Decimal(10, 2)
+  tax                  Decimal @db.Decimal(10, 2) @default(0)
+  subtotal             Decimal @db.Decimal(10, 2)
+  createdAt            DateTime @default(now())
 
-  purchase Purchase @relation(fields: [purchaseId], references: [id])
+  purchase             Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchaseOrderItem    PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  product              Product @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([purchaseOrderItemId])
+  @@index([productId])
 }
 
 model InventoryMovement {
@@ -454,10 +481,14 @@ model InventoryMovement {
   userId     String
   date       DateTime
   type       MovementType
+  reference  String?
   notes      String?
   createdAt  DateTime     @default(now())
 
   items InventoryMovementItem[]
+
+  @@index([tenantId, locationId, date])
+  @@index([tenantId, date])
 }
 
 enum MovementType {
@@ -471,7 +502,11 @@ model InventoryMovementItem {
   productId           String
   quantity            Int
 
-  inventoryMovement InventoryMovement @relation(fields: [inventoryMovementId], references: [id])
+  inventoryMovement InventoryMovement @relation(fields: [inventoryMovementId], references: [id], onDelete: Cascade)
+  product           Product           @relation(fields: [productId], references: [id])
+
+  @@index([inventoryMovementId])
+  @@index([productId])
 }
 
 // ─────────────────────────────────────────────
