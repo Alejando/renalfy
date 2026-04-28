@@ -2,18 +2,7 @@ import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { InventoryMovementsService } from './inventory-movements.service.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import type { UserRole } from '@repo/types';
-import type { InventoryMovementQuerySchema } from '@repo/types';
-
-class InventoryMovementQueryDto {
-  page?: number = 1;
-  limit?: number = 20;
-  locationId?: string;
-  productId?: string;
-  type?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-}
+import type { UserRole, InventoryMovementQuery } from '@repo/types';
 
 @Controller('inventory-movements')
 @UseGuards(JwtAuthGuard)
@@ -26,7 +15,7 @@ export class InventoryMovementsController {
   findAll(
     @CurrentUser()
     user: { tenantId: string; role: UserRole; locationId: string | null },
-    @Query() query: InventoryMovementQueryDto,
+    @Query() query: InventoryMovementQuery,
   ) {
     return this.inventoryMovementsService.findAll(
       user.tenantId,
