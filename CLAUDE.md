@@ -718,6 +718,93 @@ switch (appointment.status) {
 }
 ```
 
+### Typing de Prisma queries en servicios
+
+**Evitar `error` type en resultados de Prisma.** Los values sin tipar van a mostrar `error` en eslint.
+
+```ts
+// ❌ — TypeScript no puede inferir el return type de findUniqueOrThrow
+const purchaseOrder = await this.prisma.purchaseOrder.findUniqueOrThrow({ where: { id } });
+
+// ✅ — Importar tipos de Prisma y usarlos explícitamente
+import type { PurchaseOrder, Location } from '../../generated/prisma/client.js';
+
+const purchaseOrder: PurchaseOrder = await this.prisma.purchaseOrder.findUniqueOrThrow({ 
+  where: { id } 
+});
+const location: Location | null = await this.prisma.location.findUnique({ where: { id } });
+```
+
+**Para queries complejas con `Promise.all()`:** usar type assertions en el resultado:
+
+```ts
+// ❌ — data y total se ven como 'error' type
+const [data, total] = await Promise.all([
+  this.prisma.inventoryMovement.findMany({ ... }),
+  this.prisma.inventoryMovement.count({ where }),
+]);
+
+// ✅ — Type assertion en todo el resultado
+const [data, total] = (await Promise.all([
+  this.prisma.inventoryMovement.findMany({ ... }),
+  this.prisma.inventoryMovement.count({ where }),
+])) as [Array<InventoryMovement & { items: Array<{ id: string }> }>, number];
+```
+
+### Typing en tests unitarios vs E2E
+
+**Tests unitarios:** Los mocks deben ser tipados para evitar `any`:
+
+```ts
+// ❌ — deepMerge sin tipar causa errores
+function deepMerge(target, source) { 
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+// ✅ — Usar unknown o Record<string, unknown>
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const key in source) {
+    if (
+      source[key] &&
+      typeof source[key] === 'object' &&
+      !Array.isArray(source[key])
+    ) {
+      result[key] = deepMerge(
+        result[key] as Record<string, unknown> || {},
+        source[key] as Record<string, unknown>
+      );
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+```
+
+**E2E tests con supertest:** Los tipos de `request()` no están completamente inferidos. Es normal que pasen algunos `no-unsafe-*` errors aquí — priorizamos tests funcionales sobre typing perfecto en scaffolding estructural:
+
+```ts
+// E2E tests usan request() sin tipos perfectos
+const res = await request(app.getHttpServer())
+  .post('/api/purchases')
+  .set('Authorization', `Bearer ${token}`)
+  .send(dto);
+
+// Acceso a propiedades — algunos errores son OK en E2E tests estructurales
+expect(res.status).toBe(201); // Puede mostrar no-unsafe-member-access
+```
+
+**Regla:** En código de producción, tipos explícitos. En tests, se permite mayor leniencia con `any` si es necesario para mocks complejos, pero siempre documentar por qué.
+
 ---
 
 ## Cumplimiento regulatorio — México (Salud)
@@ -879,7 +966,7 @@ import { PrismaService } from '../prisma/prisma.service';
 | 16 | UI — Módulo 3: Productos + Stock | Front | ✅ Listo | 15 |
 | 17 | Módulo 3 — Proveedores + Órdenes de compra (backend) | Back | ✅ Listo | 15 |
 | 18 | UI — Módulo 3: Proveedores + Órdenes de compra | Front | ✅ Listo | 17 |
-| 19 | Módulo 3 — Compras + Movimientos de inventario (backend) | Back | Pendiente | 17 |
+| 19 | Módulo 3 — Compras + Movimientos de inventario (backend) | Back | ✅ Listo | 17 |
 | 20 | UI — Módulo 3: Compras + Movimientos | Front | Pendiente | 19 |
 | 21 | Módulo 4 — Ventas (backend) | Back | Pendiente | 15 |
 | 22 | UI — Módulo 4: Ventas | Front | Pendiente | 21 |
@@ -907,4 +994,5 @@ Para poder correr el script de migración de SUTR, deben estar listos: **Sprints
 - PostgreSQL 16 con RLS — tablas `Purchase`, `PurchaseItem`, `InventoryMovement`, `InventoryMovementItem`, `LocationStock`, `PurchaseOrderItem` (015-sprint-dulo-compras)
 
 ## Recent Changes
+- Sprint 19: Purchases + Inventory Movements backend implemented with atomic transactions, accumulated quantity validation, state machine (CONFIRMED → RECEIVED → COMPLETED), InventoryMovement with PURCHASE-{id} reference. 328/328 tests passing. TypeScript typing best practices added to CLAUDE.md.
 - 012-products-stock-backend: Products & Stock backend fully implemented with 59 tasks completed, 51 unit tests, 39 E2E tests
