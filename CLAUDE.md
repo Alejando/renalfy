@@ -909,17 +909,29 @@ El proyecto usa **dos bases de datos separadas** para evitar conflictos:
 | `renalfy` | Development local | `renalfy_app` | 5434 | `localhost:5434/renalfy` |
 | `renalfy_test` | Tests automatizados | `renalfy_app` | 5434 | `localhost:5434/renalfy_test` |
 
+**Usuarios:**
+- **`renalfy`** — superuser para migraciones (BYPASSRLS implícito)
+- **`renalfy_app`** — usuario de aplicación en runtime (sujeto a RLS)
+
 **Configuración:**
 - **`.env`** — apunta a BD de development
 - **`.env.test`** — apunta a BD de test (solo para tests)
 - Los tests carguen `.env.test` automáticamente con `NODE_ENV=test`
 - Cada `pnpm test` hace `migrate reset` en `renalfy_test` (destruye y recrea)
 - BD de development nunca se toca durante testing
+- **Crucial:** `renalfy_app` debe tener permisos USAGE, CREATE en schema `public`
 
 **Setup inicial:**
 ```bash
 cd apps/api
-pnpm test:setup              # Crear BD renalfy_test y aplicar migraciones
+bash ./scripts/setup-dev-db.sh   # Setup BD development + permisos
+pnpm test:setup                  # Setup BD test + migraciones
+```
+
+Si el error es `permission denied for schema public`, ejecutar:
+```bash
+bash ./scripts/setup-dev-db.sh
+pnpm test:setup
 ```
 
 **Comandos normales:**
