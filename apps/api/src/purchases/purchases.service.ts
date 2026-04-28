@@ -13,7 +13,11 @@ import type {
   ReceivePurchaseOrderDto,
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { Prisma } from '../../generated/prisma/client.js';
+import type {
+  Prisma,
+  PurchaseOrder,
+  Location,
+} from '../../generated/prisma/client.js';
 
 function toString(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -69,9 +73,10 @@ export class PurchasesService {
     }
 
     // Verify purchase order exists and is in correct state
-    const purchaseOrder = await this.prisma.purchaseOrder.findUniqueOrThrow({
-      where: { id: dto.purchaseOrderId },
-    });
+    const purchaseOrder: PurchaseOrder =
+      await this.prisma.purchaseOrder.findUniqueOrThrow({
+        where: { id: dto.purchaseOrderId },
+      });
 
     if (purchaseOrder.tenantId !== tenantId) {
       throw new NotFoundException(`Orden de compra no encontrada en su tenant`);
@@ -87,7 +92,7 @@ export class PurchasesService {
     }
 
     // Verify location ownership
-    const location = await this.prisma.location.findUnique({
+    const location: Location | null = await this.prisma.location.findUnique({
       where: { id: dto.locationId },
     });
     if (!location || location.tenantId !== tenantId) {

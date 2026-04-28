@@ -9,7 +9,11 @@ import type {
   PaginatedInventoryMovementsResponse,
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { Prisma } from '../../generated/prisma/client.js';
+import type {
+  Prisma,
+  InventoryMovement,
+  InventoryMovementItem,
+} from '../../generated/prisma/client.js';
 
 function buildMovementResponse(movement: {
   id: string;
@@ -92,7 +96,7 @@ export class InventoryMovementsService {
         : {}),
     };
 
-    const [data, total] = await Promise.all([
+    const [data, total] = (await Promise.all([
       this.prisma.inventoryMovement.findMany({
         where,
         skip,
@@ -103,7 +107,10 @@ export class InventoryMovementsService {
         },
       }),
       this.prisma.inventoryMovement.count({ where }),
-    ]);
+    ])) as [
+      Array<InventoryMovement & { items: Array<{ id: string }> }>,
+      number,
+    ];
 
     return {
       data: data.map((movement) => buildMovementResponse(movement)),
@@ -138,12 +145,16 @@ export class InventoryMovementsService {
           where: { id, tenantId, ...locationWhere },
         });
 
-        const items = await tx.inventoryMovementItem.findMany({
+        const items = (await tx.inventoryMovementItem.findMany({
           where: { inventoryMovementId: id },
           include: {
             product: { select: { id: true, name: true, brand: true } },
           },
-        });
+        })) as Array<
+          InventoryMovementItem & {
+            product: { id: string; name: string; brand: string | null };
+          }
+        >;
 
         return {
           id: movement.id,
