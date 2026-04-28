@@ -900,18 +900,57 @@ create(@Body() dto: CreateMeasurementDto) { ... }
 
 ---
 
+## Bases de datos — Development vs Test
+
+El proyecto usa **dos bases de datos separadas** para evitar conflictos:
+
+| Base de datos | Propósito | Usuario | Puerto | URL |
+|---|---|---|---|---|
+| `renalfy` | Development local | `renalfy_app` | 5434 | `localhost:5434/renalfy` |
+| `renalfy_test` | Tests automatizados | `renalfy_app` | 5434 | `localhost:5434/renalfy_test` |
+
+**Configuración:**
+- **`.env`** — apunta a BD de development
+- **`.env.test`** — apunta a BD de test (solo para tests)
+- Los tests carguen `.env.test` automáticamente con `NODE_ENV=test`
+- Cada `pnpm test` hace `migrate reset` en `renalfy_test` (destruye y recrea)
+- BD de development nunca se toca durante testing
+
+**Setup inicial:**
+```bash
+cd apps/api
+pnpm test:setup              # Crear BD renalfy_test y aplicar migraciones
+```
+
+**Comandos normales:**
+```bash
+# Development — usa renalfy
+pnpm dev                     # o npm run dev en apps/api
+
+# Testing — usa renalfy_test (automático)
+pnpm --filter api test       # carga .env.test, resetea BD
+pnpm --filter api test:watch
+pnpm --filter api test:e2e
+```
+
+---
+
 ## Comandos frecuentes
 
 ```bash
 # Arrancar entorno local
-docker-compose up -d          # PostgreSQL en puerto 5432
+docker-compose up -d          # PostgreSQL en puerto 5434
 pnpm dev                      # api en :3019, web en :3020
 
 # Base de datos
 cd apps/api
-npx prisma migrate dev        # crear y aplicar migración
+npx prisma migrate dev        # crear y aplicar migración (en renalfy)
 npx prisma generate           # regenerar cliente Prisma
-npx prisma studio             # GUI de la BD
+npx prisma studio             # GUI de la BD renalfy
+
+# Tests
+pnpm --filter api test        # tests + BD test reset automático
+pnpm --filter api test:e2e    # E2E tests
 
 # Build
 pnpm build                    # build completo (turbo)
