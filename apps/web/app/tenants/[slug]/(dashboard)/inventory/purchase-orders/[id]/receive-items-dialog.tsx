@@ -18,6 +18,7 @@ export function ReceiveItemsDialog({
   onSuccess,
 }: ReceiveItemsDialogProps) {
   return (
+    // Sheet uses Radix Dialog which natively handles Escape key to close
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full max-w-lg flex flex-col p-0">
         <SheetHeader className="px-6 py-4 border-b">

@@ -233,6 +233,7 @@ export function PurchaseOrdersPageClient({
             placeholder="Buscar por proveedor..."
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
+            aria-label="Buscar por proveedor"
             className="max-w-xs"
           />
           <select
