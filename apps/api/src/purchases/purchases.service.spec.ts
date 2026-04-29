@@ -80,6 +80,7 @@ const mockPOItem = {
   quantity: 10,
   unitsPerPackage: 100,
   unitPrice: '150.00',
+  tax: '0.00',
   subtotal: '1500.00',
   createdAt: new Date('2024-01-15'),
 };
@@ -130,7 +131,6 @@ function makeTx(
     },
     purchaseOrderItem: {
       findFirstOrThrow: jest.fn().mockResolvedValue(mockPOItem),
-      findMany: jest.fn().mockResolvedValue([mockPOItem]),
       findMany: jest.fn().mockResolvedValue([mockPOItem]),
     },
     purchaseItem: {

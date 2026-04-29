@@ -17,6 +17,8 @@ export default async function PurchaseOrdersPage({
     typeof params['supplierId'] === 'string' ? params['supplierId'] : undefined;
   const status = typeof params['status'] === 'string' ? params['status'] : undefined;
   const search = typeof params['search'] === 'string' ? params['search'] : undefined;
+  const dateFrom = typeof params['dateFrom'] === 'string' ? params['dateFrom'] : undefined;
+  const dateTo = typeof params['dateTo'] === 'string' ? params['dateTo'] : undefined;
 
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
@@ -37,6 +39,8 @@ export default async function PurchaseOrdersPage({
     if (supplierId) query.set('supplierId', supplierId);
     if (status) query.set('status', status);
     if (search) query.set('search', search);
+    if (dateFrom) query.set('dateFrom', dateFrom);
+    if (dateTo) query.set('dateTo', dateTo);
     [ordersData, suppliersData] = await Promise.all([
       apiFetch<PaginatedPurchaseOrdersResponse>(`/purchase-orders?${query.toString()}`),
       apiFetch<PaginatedSuppliersResponse>('/suppliers?limit=100'),

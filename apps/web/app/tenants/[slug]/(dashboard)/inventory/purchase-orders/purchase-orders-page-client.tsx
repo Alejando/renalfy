@@ -61,6 +61,9 @@ export function PurchaseOrdersPageClient({
       ? searchParams.get('status')!
       : 'all',
   );
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') ?? '');
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') ?? '');
+  const [dateError, setDateError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canManage = userRole === 'OWNER' || userRole === 'ADMIN';
@@ -122,6 +125,57 @@ export function PurchaseOrdersPageClient({
     router.push(`?${params.toString()}`);
   };
 
+  const handleDateFromChange = (value: string) => {
+    setDateFrom(value);
+    setDateError(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (value && dateTo && value > dateTo) {
+        setDateError('La fecha de inicio debe ser anterior a la fecha de fin');
+        return;
+      }
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) params.set('dateFrom', value);
+      else params.delete('dateFrom');
+      params.set('page', '1');
+      router.push(`?${params.toString()}`);
+    }, 300);
+  };
+
+  const handleDateToChange = (value: string) => {
+    setDateTo(value);
+    setDateError(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (dateFrom && value && dateFrom > value) {
+        setDateError('La fecha de inicio debe ser anterior a la fecha de fin');
+        return;
+      }
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) params.set('dateTo', value);
+      else params.delete('dateTo');
+      params.set('page', '1');
+      router.push(`?${params.toString()}`);
+    }, 300);
+  };
+
+  const handleClearFilters = () => {
+    setSearchValue('');
+    setSupplierFilter('all');
+    setStatusFilter('all');
+    setDateFrom('');
+    setDateTo('');
+    setDateError(null);
+    router.push('?page=1');
+  };
+
+  const hasActiveFilters =
+    searchValue !== '' ||
+    supplierFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    dateFrom !== '' ||
+    dateTo !== '';
+
   const goToPage = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
@@ -172,38 +226,78 @@ export function PurchaseOrdersPageClient({
         )}
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <Input
-          type="text"
-          placeholder="Buscar por proveedor..."
-          value={searchValue}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="max-w-xs"
-        />
-        <select
-          value={supplierFilter}
-          onChange={(e) => handleSupplierFilterChange(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm w-48"
-        >
-          <option value="all">Todos los proveedores</option>
-          {suppliers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => handleStatusFilterChange(e.target.value)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm w-40"
-        >
-          <option value="all">Todos los estados</option>
-          <option value="DRAFT">Borrador</option>
-          <option value="SENT">Enviada</option>
-          <option value="CONFIRMED">Confirmada</option>
-          <option value="RECEIVED">Recibida</option>
-          <option value="CANCELLED">Cancelada</option>
-        </select>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Input
+            type="text"
+            placeholder="Buscar por proveedor..."
+            value={searchValue}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="max-w-xs"
+          />
+          <select
+            value={supplierFilter}
+            onChange={(e) => handleSupplierFilterChange(e.target.value)}
+            aria-label="Filtrar por proveedor"
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm w-48"
+          >
+            <option value="all">Todos los proveedores</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            aria-label="Filtrar por estado"
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm w-40"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="DRAFT">Borrador</option>
+            <option value="SENT">Enviada</option>
+            <option value="CONFIRMED">Confirmada</option>
+            <option value="RECEIVED">Recibida</option>
+            <option value="CANCELLED">Cancelada</option>
+          </select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+              Limpiar Filtros
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="space-y-1">
+            <label htmlFor="dateFrom" className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold">
+              Fecha desde
+            </label>
+            <input
+              id="dateFrom"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => handleDateFromChange(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="dateTo" className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold">
+              Fecha hasta
+            </label>
+            <input
+              id="dateTo"
+              type="date"
+              value={dateTo}
+              onChange={(e) => handleDateToChange(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </div>
+        </div>
+
+        {dateError && (
+          <p className="text-destructive text-sm">{dateError}</p>
+        )}
       </div>
 
       {orders.data.length === 0 ? (

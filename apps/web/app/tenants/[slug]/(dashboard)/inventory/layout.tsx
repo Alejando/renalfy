@@ -22,6 +22,8 @@ export default async function InventoryLayout({ children }: Props) {
         <InventoryTab href="/inventory/stock" label="Stock" />
         <InventoryTab href="/inventory/suppliers" label="Proveedores" />
         <InventoryTab href="/inventory/purchase-orders" label="Órdenes" />
+        <InventoryTab href="/inventory/purchases" label="Compras" />
+        <InventoryTab href="/inventory/movements" label="Movimientos" />
         {canViewSummary && (
           <InventoryTab href="/inventory/summary" label="Resumen" />
         )}
