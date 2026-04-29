@@ -172,6 +172,7 @@ export function MovementsPageClient({
               placeholder="Buscar por referencia..."
               value={referenceSearch}
               onChange={handleReferenceChange}
+              aria-label="Buscar por referencia"
               className="w-full"
             />
           </div>

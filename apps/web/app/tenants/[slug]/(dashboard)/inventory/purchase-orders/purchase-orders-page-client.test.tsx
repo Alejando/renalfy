@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type {
   PurchaseOrderResponse,
   PaginatedPurchaseOrdersResponse,
@@ -22,7 +23,7 @@ vi.mock('./purchase-order-status-badge', () => ({
   ),
 }));
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PurchaseOrdersPageClient } from './purchase-orders-page-client';
 
 const mockRouterPush = vi.fn();
@@ -70,6 +71,9 @@ describe('PurchaseOrdersPageClient', () => {
       replace: vi.fn(),
       prefetch: vi.fn(),
     } as ReturnType<typeof useRouter>);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>
+    );
   });
 
   it('renders page heading', () => {
@@ -156,6 +160,7 @@ describe('PurchaseOrdersPageClient', () => {
   });
 
   // US1 — Date Range Filtering Tests
+  // T006: renders dateFrom and dateTo date inputs
   it('renders dateFrom and dateTo date inputs', () => {
     render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
     const dateFromInput = document.querySelector('input[id="dateFrom"]');
@@ -164,29 +169,45 @@ describe('PurchaseOrdersPageClient', () => {
     expect(dateToInput).toBeInTheDocument();
   });
 
+  // T007: shows "Limpiar Filtros" button when any filter is active
   it('shows "Limpiar Filtros" button when any filter has a value', () => {
-    // This test uses a workaround: we check that the button CAN exist by temporarily setting a filter
-    // In real usage, filters come from URL params and are preserved across renders
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams('search=test') as unknown as ReturnType<typeof useSearchParams>
+    );
     render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
-    // The button should be hidden when no filters are active
-    expect(screen.queryByRole('button', { name: /limpiar filtros/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /limpiar filtros/i })).toBeInTheDocument();
   });
 
-  it('clears all filters by resetting to ?page=1', async () => {
-    const userEvent = await import('@testing-library/user-event');
-    // Simulate having a search filter active
+  // T008: clears all filters when "Limpiar Filtros" is clicked
+  it('clears all filters when "Limpiar Filtros" is clicked', async () => {
     mockRouterPush.mockClear();
 
-    const suppliers = [
-      { id: 'supplier-1', name: 'Proveedor A' },
-    ];
-    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={suppliers} />);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams('search=test&supplierId=supplier-1') as unknown as ReturnType<typeof useSearchParams>
+    );
 
-    // Find the supplier select and change it to set a filter
-    const supplierSelect = screen.getByRole('combobox', { name: /filtrar por proveedor/i });
-    await userEvent.default.selectOptions(supplierSelect, 'supplier-1');
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
 
-    // The router.push should have been called with the new filter
-    expect(mockRouterPush).toHaveBeenCalled();
+    const clearButton = screen.getByRole('button', { name: /limpiar filtros/i });
+    await userEvent.click(clearButton);
+
+    expect(mockRouterPush).toHaveBeenCalledWith('?page=1');
+  });
+
+  // T009: updates URL with dateFrom when date input changes
+  it('updates URL with dateFrom when date input changes', async () => {
+    mockRouterPush.mockClear();
+
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
+
+    const dateFromInput = document.querySelector('input[id="dateFrom"]') as HTMLInputElement;
+    await userEvent.type(dateFromInput, '2026-04-15');
+
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      expect.stringContaining('dateFrom=2026-04-15')
+    );
   });
 });

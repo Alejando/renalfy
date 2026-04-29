@@ -29,6 +29,9 @@ import {
   updatePurchaseOrderStatusAction,
   removeOrderItemAction,
 } from '@/app/actions/purchase-orders';
+import {
+  closePurchaseOrderAction,
+} from '@/app/actions/purchases';
 
 interface PurchaseOrderDetailClientProps {
   order: PurchaseOrderDetailResponse;
@@ -49,6 +52,7 @@ export function PurchaseOrderDetailClient({
   const isDraft = order.status === 'DRAFT';
   const isSent = order.status === 'SENT';
   const isConfirmed = order.status === 'CONFIRMED';
+  const isReceived = order.status === 'RECEIVED';
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
@@ -68,6 +72,17 @@ export function PurchaseOrderDetailClient({
     const confirmed = window.confirm('¿Eliminar este ítem de la orden?');
     if (!confirmed) return;
     const result = await removeOrderItemAction(order.id, itemId);
+    if (!result?.error) {
+      router.refresh();
+    }
+  };
+
+  const handleCloseOrder = async () => {
+    const confirmed = window.confirm('¿Cerrar esta orden de compra?');
+    if (!confirmed) return;
+    setActionLoading(true);
+    const result = await closePurchaseOrderAction(order.id);
+    setActionLoading(false);
     if (!result?.error) {
       router.refresh();
     }
@@ -180,6 +195,15 @@ export function PurchaseOrderDetailClient({
                 onClick={() => setReceiveDialogOpen(true)}
               >
                 Recibir Artículos
+              </Button>
+            )}
+            {isReceived && canManage && (
+              <Button
+                variant="outline"
+                onClick={handleCloseOrder}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Cerrando…' : 'Cerrar Orden'}
               </Button>
             )}
           </div>

@@ -73,8 +73,14 @@ export function MovementDetailClient({
       )}
 
       {/* Items Table */}
-      <div className="border border-outline rounded-lg overflow-hidden">
-        <Table>
+      <div className="space-y-3 border border-outline rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-outline">
+          <h2 className="text-lg font-semibold text-on-surface font-headline">
+            Artículos del Movimiento
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Producto</TableHead>
@@ -112,6 +118,7 @@ export function MovementDetailClient({
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

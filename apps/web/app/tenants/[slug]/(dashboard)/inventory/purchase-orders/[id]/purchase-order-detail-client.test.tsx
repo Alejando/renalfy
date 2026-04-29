@@ -12,6 +12,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/app/actions/purchase-orders', () => ({
   updatePurchaseOrderStatusAction: vi.fn(),
+  removeOrderItemAction: vi.fn(),
+}));
+
+vi.mock('@/app/actions/purchases', () => ({
+  closePurchaseOrderAction: vi.fn(),
 }));
 
 vi.mock('./add-order-item-dialog', () => ({
@@ -31,9 +36,13 @@ vi.mock('../purchase-order-status-badge', () => ({
 }));
 
 import { useRouter } from 'next/navigation';
+import userEvent from '@testing-library/user-event';
 import {
   updatePurchaseOrderStatusAction,
 } from '@/app/actions/purchase-orders';
+import {
+  closePurchaseOrderAction,
+} from '@/app/actions/purchases';
 import { PurchaseOrderDetailClient } from './purchase-order-detail-client';
 
 const mockRouterBack = vi.fn();
@@ -208,5 +217,48 @@ describe('PurchaseOrderDetailClient', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: /recibir artículos/i })).not.toBeInTheDocument();
+  });
+
+  it('shows "Cerrar Orden" button for OWNER on RECEIVED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="OWNER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /cerrar orden/i })).toBeInTheDocument();
+  });
+
+  it('does not show "Cerrar Orden" button for MANAGER on RECEIVED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="MANAGER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /cerrar orden/i })).not.toBeInTheDocument();
+  });
+
+  it('calls closePurchaseOrderAction when "Cerrar Orden" is clicked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(closePurchaseOrderAction).mockResolvedValue(null);
+    global.confirm = vi.fn(() => true);
+
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="OWNER"
+        userLocationId={null}
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: /cerrar orden/i });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(closePurchaseOrderAction).toHaveBeenCalledWith(ORDER);
+    });
   });
 });
