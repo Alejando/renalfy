@@ -4,6 +4,8 @@ import { AuthService } from './auth.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { JwtService } from '@nestjs/jwt';
 import type { ConfigService } from '@nestjs/config';
+import type { AuditService } from '../audit/audit.service.js';
+import type { Request } from 'express';
 
 // Prevent Prisma from loading native binaries / connecting to DB during unit tests
 jest.mock('@prisma/adapter-pg', () => ({
@@ -62,17 +64,34 @@ function makeConfig(): ConfigService {
   } as unknown as ConfigService;
 }
 
+function makeAudit(): AuditService {
+  return {
+    log: jest.fn(),
+  } as unknown as AuditService;
+}
+
+function makeRequest(): Request {
+  return {
+    ip: '127.0.0.1',
+    get: jest.fn().mockReturnValue('Mozilla/5.0'),
+  } as unknown as Request;
+}
+
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaService;
   let jwt: JwtService;
   let config: ConfigService;
+  let audit: AuditService;
+  let request: Request;
 
   beforeEach(() => {
     prisma = makePrisma();
     jwt = makeJwt();
     config = makeConfig();
-    service = new AuthService(prisma, jwt, config);
+    audit = makeAudit();
+    request = makeRequest();
+    service = new AuthService(prisma, jwt, config, audit, request);
   });
 
   describe('login()', () => {

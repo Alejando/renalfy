@@ -3,6 +3,38 @@ import type { NextRequest } from 'next/server';
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 const TOKEN_REFRESH_THRESHOLD = 2 * 60; // Refresh if 2 minutes or less left
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+function addSecurityHeaders(response: NextResponse): void {
+  // Prevent MIME type sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+
+  // Prevent clickjacking
+  response.headers.set('X-Frame-Options', 'DENY');
+
+  // HSTS (only in production)
+  if (IS_PRODUCTION) {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    );
+  }
+
+  // Referrer policy
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // CSP (permissive, can be tightened later)
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:"
+  );
+
+  // Permissions policy (formerly Feature-Policy)
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+  );
+}
 
 export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('access_token')?.value;
@@ -49,7 +81,6 @@ export async function middleware(request: NextRequest) {
         };
 
         const nextResponse = NextResponse.next();
-        const IS_PRODUCTION = process.env.NODE_ENV === 'production';
         const ACCESS_TOKEN_TTL = 60 * 15; // 15 minutes
         const REFRESH_TOKEN_TTL = 60 * 60 * 24 * 7; // 7 days
 
@@ -73,15 +104,20 @@ export async function middleware(request: NextRequest) {
           });
         }
 
+        addSecurityHeaders(nextResponse);
         return nextResponse;
       }
     }
   } catch {
     // If token decode fails, continue normally
-    return NextResponse.next();
+    const nextResponse = NextResponse.next();
+    addSecurityHeaders(nextResponse);
+    return nextResponse;
   }
 
-  return NextResponse.next();
+  const nextResponse = NextResponse.next();
+  addSecurityHeaders(nextResponse);
+  return nextResponse;
 }
 
 export const config = {

@@ -2,12 +2,16 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { REQUEST } from '@nestjs/core';
 import * as bcrypt from 'bcrypt';
 import type ms from 'ms';
+import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import type { LoginDto } from './dto/login.dto.js';
 
 const BCRYPT_ROUNDS = 10;
@@ -18,6 +22,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
+    @Inject(REQUEST) private readonly request: Request,
   ) {}
 
   async login(dto: LoginDto) {
@@ -25,13 +31,51 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    const isPasswordValid =
+      user && (await bcrypt.compare(dto.password, user.password));
+
+    if (!user || !isPasswordValid) {
+      // Log failed login attempt
+      this.audit.log({
+        tenantId: undefined, // Login fails before we know tenant
+        userId: undefined,
+        action: 'LOGIN_FAILED',
+        resource: 'Auth',
+        resourceId: dto.email,
+        oldValues: { reason: user ? 'invalid_password' : 'user_not_found' },
+        ipAddress: this.request.ip,
+        userAgent: this.request.get('user-agent'),
+      });
+
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     if (user.status === 'SUSPENDED') {
+      // Log suspended account login attempt
+      this.audit.log({
+        tenantId: user.tenantId,
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        resource: 'Auth',
+        resourceId: user.id,
+        oldValues: { reason: 'account_suspended' },
+        ipAddress: this.request.ip,
+        userAgent: this.request.get('user-agent'),
+      });
+
       throw new ForbiddenException('Cuenta suspendida');
     }
+
+    // Log successful login
+    this.audit.log({
+      tenantId: user.tenantId,
+      userId: user.id,
+      action: 'LOGIN',
+      resource: 'Auth',
+      resourceId: user.id,
+      ipAddress: this.request.ip,
+      userAgent: this.request.get('user-agent'),
+    });
 
     return this.generateTokens(
       user.id,

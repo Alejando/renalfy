@@ -4,22 +4,30 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: {
+      json: { limit: '10kb' },
+      urlencoded: { limit: '10kb' },
+    },
+  });
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ZodValidationPipe());
 
-  const allowedOrigins = process.env.ALLOWED_ORIGINS;
+  // Default to localhost if ALLOWED_ORIGINS not set (safe fallback)
+  const allowedOrigins = (
+    process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000'
+  )
+    .split(',')
+    .map((o) => o.trim());
 
-  if (allowedOrigins) {
-    const originsArray = allowedOrigins.split(',').map((o) => o.trim());
-    app.enableCors({
-      origin: originsArray,
-      credentials: true,
-    });
-  } else {
-    app.enableCors();
-  }
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
+    optionsSuccessStatus: 200,
+  });
 
   await app.listen(process.env['PORT'] ?? 3001);
 }

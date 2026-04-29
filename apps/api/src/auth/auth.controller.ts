@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
@@ -25,6 +26,7 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
+  @Throttle({ 'auth-login': { limit: 5, ttl: 60000 } })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
   }
@@ -33,6 +35,7 @@ export class AuthController {
   @Public()
   @UseGuards(JwtRefreshGuard)
   @HttpCode(HttpStatus.OK)
+  @Throttle({ 'auth-refresh': { limit: 10, ttl: 60000 } })
   refresh(@CurrentUser() user: { userId: string; refreshToken: string }) {
     return this.auth.refresh(user.userId, user.refreshToken);
   }

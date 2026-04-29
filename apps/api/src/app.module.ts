@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuditModule } from './audit/audit.module.js';
@@ -30,6 +32,23 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 5, // 5 attempts per minute
+        name: 'auth-login',
+      },
+      {
+        ttl: 60000,
+        limit: 10, // 10 attempts per minute for refresh
+        name: 'auth-refresh',
+      },
+      {
+        ttl: 60000,
+        limit: 30, // General API rate limit
+        name: 'api',
+      },
+    ]),
     PrismaModule,
     AuditModule,
     AuthModule,
@@ -53,7 +72,11 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     InventoryMovementsModule,
   ],
   providers: [
-    // JwtAuthGuard runs first (global) so req.user is set before RolesGuard
+    // Filters run first to catch exceptions
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    // ThrottlerGuard runs first to rate limit all endpoints
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // JwtAuthGuard runs next (global) so req.user is set before RolesGuard
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     // El orden importa: TenantInterceptor primero (setea RLS), luego AuditInterceptor
