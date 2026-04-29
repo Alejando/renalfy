@@ -357,7 +357,9 @@ export class PurchaseOrdersService {
           purchaseOrderId: orderId,
           productId: dto.productId,
           quantity: dto.quantity,
+          unitsPerPackage: dto.unitsPerPackage ?? 1,
           unitPrice: dto.unitPrice,
+          tax: '0.00',
           subtotal,
         },
         include: {
