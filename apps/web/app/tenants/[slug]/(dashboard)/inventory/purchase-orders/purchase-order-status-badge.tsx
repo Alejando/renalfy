@@ -22,7 +22,15 @@ const STATUS_CONFIG: Record<
   },
   RECEIVED: {
     label: 'Recibida',
+    className: 'bg-blue-100 text-blue-800',
+  },
+  COMPLETED: {
+    label: 'Completada',
     className: 'bg-green-100 text-green-800',
+  },
+  CLOSED: {
+    label: 'Cerrada',
+    className: 'bg-slate-100 text-slate-800',
   },
   CANCELLED: {
     label: 'Cancelada',

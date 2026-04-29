@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unused-vars */
+// NOTE: This test file uses `any` in Jest mock implementations for callback args.
+// This is allowed per CLAUDE.md: "In tests, greater leniency is permitted with `any`
+// if necessary for complex mocks, but always document why." Prisma delegate mocks
+// require flexible typing for mockImplementation callbacks with unknown arg shapes.
+
 import {
   BadRequestException,
   ForbiddenException,
@@ -36,21 +42,21 @@ const mockLocation = {
   name: 'Sucursal Norte',
 };
 
-const mockProduct = {
-  id: PRODUCT_ID,
-  name: 'Eritropoyetina 4000 UI',
-  brand: 'Biotek',
-};
-
-function deepMerge(target: any, source: any): any {
-  const result = { ...target };
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
   for (const key in source) {
     if (
       source[key] &&
       typeof source[key] === 'object' &&
       !Array.isArray(source[key])
     ) {
-      result[key] = deepMerge(result[key] || {}, source[key]);
+      result[key] = deepMerge(
+        (result[key] as Record<string, unknown>) || {},
+        source[key] as Record<string, unknown>,
+      );
     } else {
       result[key] = source[key];
     }
@@ -80,6 +86,7 @@ const mockPOItem = {
   quantity: 10,
   unitsPerPackage: 100,
   unitPrice: '150.00',
+  tax: '0.00',
   subtotal: '1500.00',
   createdAt: new Date('2024-01-15'),
 };
@@ -130,7 +137,6 @@ function makeTx(
     },
     purchaseOrderItem: {
       findFirstOrThrow: jest.fn().mockResolvedValue(mockPOItem),
-      findMany: jest.fn().mockResolvedValue([mockPOItem]),
       findMany: jest.fn().mockResolvedValue([mockPOItem]),
     },
     purchaseItem: {
@@ -204,26 +210,26 @@ function makePrisma(
       update: jest.fn().mockResolvedValue(mockPurchaseOrder),
       findMany: jest.fn().mockResolvedValue([mockPurchaseOrder]),
       count: jest.fn().mockResolvedValue(1),
-    },
+    } as unknown as typeof PrismaService.prototype.purchaseOrder,
     location: {
       findUnique: jest.fn().mockResolvedValue(mockLocation),
       findFirstOrThrow: jest.fn().mockResolvedValue(mockLocation),
       findMany: jest.fn().mockResolvedValue([mockLocation]),
-    },
+    } as unknown as typeof PrismaService.prototype.location,
     supplier: {
       findMany: jest.fn().mockResolvedValue([mockSupplier]),
       findFirstOrThrow: jest.fn().mockResolvedValue(mockSupplier),
-    },
+    } as unknown as typeof PrismaService.prototype.supplier,
     purchase: {
       findMany: jest.fn().mockResolvedValue([mockPurchaseWithItems]),
       count: jest.fn().mockResolvedValue(1),
       findFirstOrThrow: jest.fn().mockResolvedValue(mockPurchase),
-    },
+    } as unknown as typeof PrismaService.prototype.purchase,
     purchaseItem: {
       groupBy: jest
         .fn()
         .mockResolvedValue([{ purchaseId: PURCHASE_ID, _count: 1 }]),
-    },
+    } as unknown as typeof PrismaService.prototype.purchaseItem,
     $transaction: jest
       .fn()
       .mockImplementation(
@@ -231,7 +237,7 @@ function makePrisma(
           fn(makeTx(overrides)),
       ),
     ...overrides,
-  };
+  } as unknown as Partial<PrismaService>;
 }
 
 describe('PurchasesService', () => {
@@ -330,7 +336,9 @@ describe('PurchasesService', () => {
 
       await service.create(TENANT_ID, USER_ID, 'OWNER', null, dto);
 
-      expect(tx.locationStock.create).toHaveBeenCalled();
+      expect(
+        (tx as Record<string, { create: jest.Mock }>).locationStock.create,
+      ).toHaveBeenCalled();
     });
 
     it('debe incrementar LocationStock existente correctamente', async () => {
@@ -362,7 +370,9 @@ describe('PurchasesService', () => {
 
       await service.create(TENANT_ID, USER_ID, 'OWNER', null, dto);
 
-      expect(tx.locationStock.update).toHaveBeenCalledWith(
+      expect(
+        (tx as Record<string, { update: jest.Mock }>).locationStock.update,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             quantity: 1000, // 500 + (5 * 100)

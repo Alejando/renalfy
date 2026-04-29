@@ -17,6 +17,8 @@ import type {
   Prisma,
   PurchaseOrder,
   Location,
+  Supplier,
+  PurchaseItem,
 } from '../../generated/prisma/client.js';
 
 function toString(value: unknown): string {
@@ -67,7 +69,7 @@ export class PurchasesService {
     tenantId: string,
     userId: string,
     role: string,
-    locationId: string,
+    locationId: string | null,
     dto: ReceivePurchaseOrderDto,
   ): Promise<PurchaseResponse> {
     if (role === 'STAFF') {
@@ -456,10 +458,10 @@ export class PurchasesService {
             },
           }),
         ])) as [
-          any,
-          any,
+          Supplier,
+          Location,
           Array<
-            any & {
+            PurchaseItem & {
               product: { id: string; name: string; brand: string | null };
             }
           >,

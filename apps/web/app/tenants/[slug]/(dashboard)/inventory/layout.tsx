@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { getSessionUser } from '../../../../../lib/session';
+import { InventoryNavClient } from './inventory-nav-client';
 
 interface Props {
   children: ReactNode;
@@ -16,28 +16,8 @@ export default async function InventoryLayout({ children }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Sub-navigation tabs */}
-      <nav className="flex items-center gap-1 border-b border-border pb-0 overflow-x-auto">
-        <InventoryTab href="/inventory/products" label="Productos" />
-        <InventoryTab href="/inventory/stock" label="Stock" />
-        <InventoryTab href="/inventory/suppliers" label="Proveedores" />
-        <InventoryTab href="/inventory/purchase-orders" label="Órdenes" />
-        {canViewSummary && (
-          <InventoryTab href="/inventory/summary" label="Resumen" />
-        )}
-      </nav>
+      <InventoryNavClient canViewSummary={canViewSummary} />
       <div>{children}</div>
     </div>
-  );
-}
-
-function InventoryTab({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-primary border-b-2 border-transparent hover:border-primary/30 transition-colors whitespace-nowrap"
-    >
-      {label}
-    </Link>
   );
 }

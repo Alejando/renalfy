@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -51,7 +52,7 @@ describe('Inventory Movements E2E', () => {
         tenantId,
         email: `test-${Date.now()}@test.com`,
         name: 'Test User',
-        passwordHash: 'hash',
+        password: 'hash',
         role: 'OWNER',
       },
     });
@@ -61,7 +62,6 @@ describe('Inventory Movements E2E', () => {
       data: {
         tenantId,
         name: 'Test Location',
-        code: 'TL',
       },
     });
     locationId = locationRes.id;
@@ -71,6 +71,8 @@ describe('Inventory Movements E2E', () => {
         tenantId,
         name: 'Test Product',
         brand: 'Test Brand',
+        purchasePrice: 10.0,
+        salePrice: 20.0,
       },
     });
     productId = productRes.id;
@@ -192,7 +194,7 @@ describe('Inventory Movements E2E', () => {
           tenantId,
           email: `manager-${Date.now()}@test.com`,
           name: 'Manager User',
-          passwordHash: 'hash',
+          password: 'hash',
           role: 'MANAGER',
           locationId,
         },
@@ -286,7 +288,6 @@ describe('Inventory Movements E2E', () => {
         data: {
           tenantId,
           name: 'Other Location',
-          code: 'OL',
         },
       });
 

@@ -215,6 +215,7 @@ describe('PurchaseOrdersService', () => {
       productId: PRODUCT_ID,
       quantity: 5,
       unitPrice: '200.00',
+      unitsPerPackage: 1,
     };
 
     it('should add item and recalculate total in transaction', async () => {

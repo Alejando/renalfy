@@ -144,7 +144,9 @@ export const PurchaseOrderItemResponseSchema = z.object({
   purchaseOrderId: z.string().uuid(),
   productId: z.string().uuid(),
   quantity: z.number().int(),
+  unitsPerPackage: z.number().int(),
   unitPrice: z.string(),
+  tax: z.string(),
   subtotal: z.string(),
   createdAt: z.coerce.date(),
   product: z.object({

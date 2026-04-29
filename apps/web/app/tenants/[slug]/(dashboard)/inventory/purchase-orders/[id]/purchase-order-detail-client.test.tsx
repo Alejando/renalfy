@@ -12,11 +12,21 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/app/actions/purchase-orders', () => ({
   updatePurchaseOrderStatusAction: vi.fn(),
+  removeOrderItemAction: vi.fn(),
+}));
+
+vi.mock('@/app/actions/purchases', () => ({
+  closePurchaseOrderAction: vi.fn(),
 }));
 
 vi.mock('./add-order-item-dialog', () => ({
   AddOrderItemDialog: ({ open }: { open: boolean }) =>
     open ? <div data-testid="add-item-dialog" /> : null,
+}));
+
+vi.mock('./receive-items-dialog', () => ({
+  ReceiveItemsDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="receive-items-dialog" /> : null,
 }));
 
 vi.mock('../purchase-order-status-badge', () => ({
@@ -26,9 +36,13 @@ vi.mock('../purchase-order-status-badge', () => ({
 }));
 
 import { useRouter } from 'next/navigation';
+import userEvent from '@testing-library/user-event';
 import {
   updatePurchaseOrderStatusAction,
 } from '@/app/actions/purchase-orders';
+import {
+  closePurchaseOrderAction,
+} from '@/app/actions/purchases';
 import { PurchaseOrderDetailClient } from './purchase-order-detail-client';
 
 const mockRouterBack = vi.fn();
@@ -38,14 +52,16 @@ const TENANT = '33333333-3333-4333-8333-333333333333';
 
 function item(o: Partial<{
   id: string; productId: string; quantity: number; unitPrice: string; subtotal: string;
-  pName: string; pBrand: string | null;
+  pName: string; pBrand: string | null; unitsPerPackage: number; tax: string;
 }> = {}) {
   return {
     id: o.id ?? 'i-1',
     purchaseOrderId: ORDER,
     productId: o.productId ?? 'p-1',
     quantity: o.quantity ?? 5,
+    unitsPerPackage: o.unitsPerPackage ?? 12,
     unitPrice: o.unitPrice ?? '150.00',
+    tax: o.tax ?? '0.00',
     subtotal: o.subtotal ?? '750.00',
     createdAt: new Date('2026-01-15'),
     product: { id: 'p-1', name: o.pName ?? 'Guantes', brand: o.pBrand ?? null },
@@ -127,10 +143,6 @@ describe('PurchaseOrderDetailClient', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
   });
 
-  it('shows Sprint 19 notice in CONFIRMED', () => {
-    render(<PurchaseOrderDetailClient order={order({ status: 'CONFIRMED' })} userRole="OWNER" userLocationId={null} />);
-    expect(screen.getByText(/sprint 19/i)).toBeInTheDocument();
-  });
 
   it('shows "Agregar Producto" in DRAFT for OWNER', () => {
     render(<PurchaseOrderDetailClient order={order()} userRole="OWNER" userLocationId={null} />);
@@ -183,5 +195,70 @@ describe('PurchaseOrderDetailClient', () => {
       />,
     );
     expect(screen.getByText('Urgente')).toBeInTheDocument();
+  });
+
+  it('shows "Recibir Artículos" button for MANAGER on CONFIRMED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'CONFIRMED' })}
+        userRole="MANAGER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /recibir artículos/i })).toBeInTheDocument();
+  });
+
+  it('does not show "Recibir Artículos" button for STAFF role', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'CONFIRMED' })}
+        userRole="STAFF"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /recibir artículos/i })).not.toBeInTheDocument();
+  });
+
+  it('shows "Cerrar Orden" button for OWNER on RECEIVED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="OWNER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /cerrar orden/i })).toBeInTheDocument();
+  });
+
+  it('does not show "Cerrar Orden" button for MANAGER on RECEIVED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="MANAGER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /cerrar orden/i })).not.toBeInTheDocument();
+  });
+
+  it('calls closePurchaseOrderAction when "Cerrar Orden" is clicked', async () => {
+    const user = userEvent.setup();
+    vi.mocked(closePurchaseOrderAction).mockResolvedValue(null);
+    global.confirm = vi.fn(() => true);
+
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'RECEIVED' })}
+        userRole="OWNER"
+        userLocationId={null}
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: /cerrar orden/i });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(closePurchaseOrderAction).toHaveBeenCalledWith(ORDER);
+    });
   });
 });

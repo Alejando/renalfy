@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type {
   PurchaseOrderResponse,
   PaginatedPurchaseOrdersResponse,
@@ -22,7 +23,7 @@ vi.mock('./purchase-order-status-badge', () => ({
   ),
 }));
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PurchaseOrdersPageClient } from './purchase-orders-page-client';
 
 const mockRouterPush = vi.fn();
@@ -70,6 +71,9 @@ describe('PurchaseOrdersPageClient', () => {
       replace: vi.fn(),
       prefetch: vi.fn(),
     } as ReturnType<typeof useRouter>);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>
+    );
   });
 
   it('renders page heading', () => {
@@ -153,5 +157,57 @@ describe('PurchaseOrdersPageClient', () => {
     );
     expect(screen.getByRole('option', { name: 'Proveedor A' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Proveedor B' })).toBeInTheDocument();
+  });
+
+  // US1 — Date Range Filtering Tests
+  // T006: renders dateFrom and dateTo date inputs
+  it('renders dateFrom and dateTo date inputs', () => {
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
+    const dateFromInput = document.querySelector('input[id="dateFrom"]');
+    const dateToInput = document.querySelector('input[id="dateTo"]');
+    expect(dateFromInput).toBeInTheDocument();
+    expect(dateToInput).toBeInTheDocument();
+  });
+
+  // T007: shows "Limpiar Filtros" button when any filter is active
+  it('shows "Limpiar Filtros" button when any filter has a value', () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams('search=test') as unknown as ReturnType<typeof useSearchParams>
+    );
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
+    expect(screen.getByRole('button', { name: /limpiar filtros/i })).toBeInTheDocument();
+  });
+
+  // T008: clears all filters when "Limpiar Filtros" is clicked
+  it('clears all filters when "Limpiar Filtros" is clicked', async () => {
+    mockRouterPush.mockClear();
+
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams('search=test&supplierId=supplier-1') as unknown as ReturnType<typeof useSearchParams>
+    );
+
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
+
+    const clearButton = screen.getByRole('button', { name: /limpiar filtros/i });
+    await userEvent.click(clearButton);
+
+    expect(mockRouterPush).toHaveBeenCalledWith('?page=1');
+  });
+
+  // T009: updates URL with dateFrom when date input changes
+  it('updates URL with dateFrom when date input changes', async () => {
+    mockRouterPush.mockClear();
+
+    render(<PurchaseOrdersPageClient orders={makeOrders()} userRole="OWNER" userLocationId={null} suppliers={[]} />);
+
+    const dateFromInput = document.querySelector('input[id="dateFrom"]') as HTMLInputElement;
+    await userEvent.type(dateFromInput, '2026-04-15');
+
+    // Wait for debounce (300ms)
+    await new Promise(resolve => setTimeout(resolve, 350));
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      expect.stringContaining('dateFrom=2026-04-15')
+    );
   });
 });

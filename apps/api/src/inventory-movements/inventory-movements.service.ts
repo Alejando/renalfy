@@ -32,7 +32,7 @@ function buildMovementResponse(movement: {
   locationId: string;
   userId: string;
   date: Date;
-  type: string;
+  type: 'IN' | 'OUT';
   reference: string | null;
   notes: string | null;
   itemCount: number;
@@ -44,7 +44,7 @@ function buildMovementResponse(movement: {
     locationId: movement.locationId,
     userId: movement.userId,
     date: movement.date,
-    type: movement.type,
+    type: movement.type as 'IN' | 'OUT',
     reference: movement.reference,
     notes: movement.notes,
     itemCount: movement.items.length,
