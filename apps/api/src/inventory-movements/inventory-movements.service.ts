@@ -70,7 +70,9 @@ export class InventoryMovementsService {
 
     const { page, limit, locationId, productId, type, dateFrom, dateTo } =
       query;
-    const skip = (page - 1) * limit;
+    const pageNum = typeof page === 'string' ? Number(page) : page;
+    const limitNum = typeof limit === 'string' ? Number(limit) : limit;
+    const skip = (pageNum - 1) * limitNum;
 
     const dateFilter: Prisma.DateTimeFilter | undefined = (() => {
       if (dateFrom && dateTo) {
@@ -100,7 +102,7 @@ export class InventoryMovementsService {
       this.prisma.inventoryMovement.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { date: 'desc' },
         include: {
           items: { select: { id: true } },
@@ -115,8 +117,8 @@ export class InventoryMovementsService {
     return {
       data: data.map((movement) => buildMovementResponse(movement)),
       total,
-      page,
-      limit,
+      page: pageNum,
+      limit: limitNum,
     };
   }
 
