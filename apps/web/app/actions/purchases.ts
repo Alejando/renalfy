@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { FormData as FormDataType } from 'form-data';
+import { ReceivePurchaseOrderSchema } from '@repo/types';
 import { apiFetch } from '../../lib/api';
 
 export async function receivePurchaseAction(
@@ -12,7 +12,7 @@ export async function receivePurchaseAction(
     const purchaseOrderId = formData.get('purchaseOrderId') as string;
     const locationId = formData.get('locationId') as string;
     const itemsJson = formData.get('items') as string;
-    const notes = formData.get('notes') as string | null;
+    const notes = (formData.get('notes') as string) || undefined;
 
     const items = JSON.parse(itemsJson);
 
@@ -20,12 +20,19 @@ export async function receivePurchaseAction(
       purchaseOrderId,
       locationId,
       items,
-      notes: notes ?? undefined,
+      ...(notes ? { notes } : {}),
     };
+
+    const result = ReceivePurchaseOrderSchema.safeParse(payload);
+    if (!result.success) {
+      return {
+        error: result.error.issues[0]?.message ?? 'Datos inválidos',
+      };
+    }
 
     await apiFetch('/purchases', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(result.data),
     });
 
     revalidatePath('/inventory/purchase-orders');
@@ -34,14 +41,11 @@ export async function receivePurchaseAction(
 
     return null;
   } catch (error) {
-    if (error instanceof Response) {
-      if (error.status === 409) {
-        return { error: 'Orden modificada por otro usuario. Actualiza la página e intenta de nuevo.' };
-      }
+    const errorMessage = error instanceof Error ? error.message : 'Error al registrar recepción';
+    if (errorMessage.includes('409')) {
+      return { error: 'Orden modificada por otro usuario. Actualiza la página e intenta de nuevo.' };
     }
-    return {
-      error: error instanceof Error ? error.message : 'Error al registrar recepción',
-    };
+    return { error: errorMessage };
   }
 }
 

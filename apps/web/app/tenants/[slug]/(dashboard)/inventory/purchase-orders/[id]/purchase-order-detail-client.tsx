@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PurchaseOrderStatusBadge } from '../purchase-order-status-badge';
 import { AddOrderItemDialog } from './add-order-item-dialog';
+import { ReceiveItemsDialog } from './receive-items-dialog';
 import {
   updatePurchaseOrderStatusAction,
   removeOrderItemAction,
@@ -44,12 +45,14 @@ export function PurchaseOrderDetailClient({
 }: PurchaseOrderDetailClientProps) {
   const router = useRouter();
   const canManage = userRole === 'OWNER' || userRole === 'ADMIN';
+  const canReceive = userRole === 'MANAGER' || userRole === 'OWNER' || userRole === 'ADMIN';
   const isDraft = order.status === 'DRAFT';
   const isSent = order.status === 'SENT';
   const isConfirmed = order.status === 'CONFIRMED';
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+  const [receiveDialogOpen, setReceiveDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const handleStatusUpdate = async (status: 'SENT' | 'CONFIRMED' | 'CANCELLED') => {
@@ -130,46 +133,56 @@ export function PurchaseOrderDetailClient({
             </p>
           </div>
 
-          {canManage && (
-            <div className="flex items-center gap-2">
-              {isDraft && (
-                <>
+          <div className="flex items-center gap-2">
+            {canManage && (
+              <>
+                {isDraft && (
+                  <>
+                    <Button
+                      variant="gradient"
+                      onClick={() => setAddItemDialogOpen(true)}
+                    >
+                      + Agregar Producto
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => handleStatusUpdate('SENT')}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? 'Enviando…' : 'Enviar al Proveedor'}
+                    </Button>
+                  </>
+                )}
+                {isSent && (
                   <Button
                     variant="gradient"
-                    onClick={() => setAddItemDialogOpen(true)}
-                  >
-                    + Agregar Producto
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => handleStatusUpdate('SENT')}
+                    onClick={() => handleStatusUpdate('CONFIRMED')}
                     disabled={actionLoading}
                   >
-                    {actionLoading ? 'Enviando…' : 'Enviar al Proveedor'}
+                    {actionLoading ? 'Confirmando…' : 'Confirmar Orden'}
                   </Button>
-                </>
-              )}
-              {isSent && (
-                <Button
-                  variant="gradient"
-                  onClick={() => handleStatusUpdate('CONFIRMED')}
-                  disabled={actionLoading}
-                >
-                  {actionLoading ? 'Confirmando…' : 'Confirmar Orden'}
-                </Button>
-              )}
-              {(isDraft || isSent) && (
-                <Button
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setCancelDialogOpen(true)}
-                  disabled={actionLoading}
-                >
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          )}
+                )}
+                {(isDraft || isSent) && (
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setCancelDialogOpen(true)}
+                    disabled={actionLoading}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+              </>
+            )}
+            {isConfirmed && canReceive && (
+              <Button
+                variant="gradient"
+                onClick={() => setReceiveDialogOpen(true)}
+              >
+                Recibir Artículos
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -243,14 +256,6 @@ export function PurchaseOrderDetailClient({
         </Table>
       </div>
 
-      {isConfirmed && (
-        <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
-          <p className="text-sm text-teal-800">
-            <strong>Nota:</strong> La recepción de mercancía se registra en el módulo de
-            Compras (Sprint 19).
-          </p>
-        </div>
-      )}
 
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
@@ -283,6 +288,16 @@ export function PurchaseOrderDetailClient({
         onClose={() => setAddItemDialogOpen(false)}
         onSuccess={() => {
           setAddItemDialogOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <ReceiveItemsDialog
+        order={order}
+        open={receiveDialogOpen}
+        onClose={() => setReceiveDialogOpen(false)}
+        onSuccess={() => {
+          setReceiveDialogOpen(false);
           router.refresh();
         }}
       />

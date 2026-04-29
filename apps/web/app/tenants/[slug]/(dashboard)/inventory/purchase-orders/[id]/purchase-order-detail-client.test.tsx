@@ -19,6 +19,11 @@ vi.mock('./add-order-item-dialog', () => ({
     open ? <div data-testid="add-item-dialog" /> : null,
 }));
 
+vi.mock('./receive-items-dialog', () => ({
+  ReceiveItemsDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="receive-items-dialog" /> : null,
+}));
+
 vi.mock('../purchase-order-status-badge', () => ({
   PurchaseOrderStatusBadge: ({ status }: { status: string }) => (
     <span data-testid={`badge-${status}`}>{status}</span>
@@ -38,14 +43,16 @@ const TENANT = '33333333-3333-4333-8333-333333333333';
 
 function item(o: Partial<{
   id: string; productId: string; quantity: number; unitPrice: string; subtotal: string;
-  pName: string; pBrand: string | null;
+  pName: string; pBrand: string | null; unitsPerPackage: number; tax: string;
 }> = {}) {
   return {
     id: o.id ?? 'i-1',
     purchaseOrderId: ORDER,
     productId: o.productId ?? 'p-1',
     quantity: o.quantity ?? 5,
+    unitsPerPackage: o.unitsPerPackage ?? 12,
     unitPrice: o.unitPrice ?? '150.00',
+    tax: o.tax ?? '0.00',
     subtotal: o.subtotal ?? '750.00',
     createdAt: new Date('2026-01-15'),
     product: { id: 'p-1', name: o.pName ?? 'Guantes', brand: o.pBrand ?? null },
@@ -127,10 +134,6 @@ describe('PurchaseOrderDetailClient', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
   });
 
-  it('shows Sprint 19 notice in CONFIRMED', () => {
-    render(<PurchaseOrderDetailClient order={order({ status: 'CONFIRMED' })} userRole="OWNER" userLocationId={null} />);
-    expect(screen.getByText(/sprint 19/i)).toBeInTheDocument();
-  });
 
   it('shows "Agregar Producto" in DRAFT for OWNER', () => {
     render(<PurchaseOrderDetailClient order={order()} userRole="OWNER" userLocationId={null} />);
@@ -183,5 +186,27 @@ describe('PurchaseOrderDetailClient', () => {
       />,
     );
     expect(screen.getByText('Urgente')).toBeInTheDocument();
+  });
+
+  it('shows "Recibir Artículos" button for MANAGER on CONFIRMED order', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'CONFIRMED' })}
+        userRole="MANAGER"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /recibir artículos/i })).toBeInTheDocument();
+  });
+
+  it('does not show "Recibir Artículos" button for STAFF role', () => {
+    render(
+      <PurchaseOrderDetailClient
+        order={order({ status: 'CONFIRMED' })}
+        userRole="STAFF"
+        userLocationId={null}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /recibir artículos/i })).not.toBeInTheDocument();
   });
 });

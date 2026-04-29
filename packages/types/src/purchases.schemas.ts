@@ -7,9 +7,9 @@ export const ReceivePurchaseItemSchema = z.object({
   purchaseOrderItemId: z.string().uuid(),
   productId: z.string().uuid(),
   quantityReceived: z.number().int().min(1, 'Cantidad recibida debe ser al menos 1'),
-  unitsPerPackage: z.number().int().min(1, 'Unidades por empaque debe ser al menos 1').default(1),
+  unitsPerPackage: z.number().int().min(1, 'Unidades por empaque debe ser al menos 1'),
   unitPrice: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato de precio inválido'),
-  tax: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato de impuesto inválido').default('0').optional(),
+  tax: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato de impuesto inválido').optional(),
 });
 
 export const ReceivePurchaseOrderSchema = z.object({
@@ -95,6 +95,9 @@ export const InventoryMovementItemResponseSchema = z.object({
   inventoryMovementId: z.string().uuid(),
   productId: z.string().uuid(),
   quantity: z.number().int(),
+  beforeStock: z.number().int().optional(),
+  afterStock: z.number().int().optional(),
+  unitPrice: z.string().optional(),
   product: z.object({
     id: z.string().uuid(),
     name: z.string(),
@@ -113,6 +116,10 @@ export const InventoryMovementResponseSchema = z.object({
   notes: z.string().nullable(),
   itemCount: z.number().int(),
   createdAt: z.coerce.date(),
+  createdBy: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+  }).optional(),
 });
 
 export const InventoryMovementDetailResponseSchema = InventoryMovementResponseSchema.extend({
