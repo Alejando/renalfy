@@ -137,3 +137,41 @@ export async function changePasswordAction(
 
   return null;
 }
+
+export async function refreshTokenAction(): Promise<boolean> {
+  const cookieStore = await cookies();
+
+  try {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // include cookies (refresh_token)
+    });
+
+    if (!res.ok) {
+      return false;
+    }
+
+    const data: unknown = await res.json();
+    const tokens = AuthTokensSchema.parse(data);
+
+    cookieStore.set('access_token', tokens.accessToken, {
+      httpOnly: true,
+      secure: IS_PRODUCTION,
+      sameSite: 'lax',
+      maxAge: ACCESS_TOKEN_TTL,
+      path: '/',
+    });
+    cookieStore.set('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: IS_PRODUCTION,
+      sameSite: 'lax',
+      maxAge: REFRESH_TOKEN_TTL_DEFAULT,
+      path: '/',
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
+}

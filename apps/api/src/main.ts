@@ -8,7 +8,18 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ZodValidationPipe());
-  app.enableCors();
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS;
+
+  if (allowedOrigins) {
+    const originsArray = allowedOrigins.split(',').map((o) => o.trim());
+    app.enableCors({
+      origin: originsArray,
+      credentials: true,
+    });
+  } else {
+    app.enableCors();
+  }
 
   await app.listen(process.env['PORT'] ?? 3001);
 }
