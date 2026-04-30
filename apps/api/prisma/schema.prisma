@@ -68,8 +68,12 @@ model User {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  location Location? @relation(fields: [locationId], references: [id])
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  location    Location?      @relation(fields: [locationId], references: [id])
+  sales       Sale[]
+  incomes     Income[]       @relation("IncomeUser")
+  expenses    Expense[]      @relation("ExpenseUser")
+  cashCloses  CashClose[]    @relation("CashCloseUser")
 
   @@unique([tenantId, email])
 }
@@ -514,105 +518,6 @@ model InventoryMovementItem {
 // MODULE 4 — CASH
 // ─────────────────────────────────────────────
 
-model Sale {
-  id            String        @id @default(uuid())
-  tenantId      String
-  locationId    String
-  userId        String
-  cashCloseId   String?
-  date          DateTime
-  customer      String?
-  amount        Decimal       @db.Decimal(10, 2)
-  paymentMethod PaymentMethod
-  status        SaleStatus    @default(PENDING)
-  settledAt     DateTime?
-  isClosed      Boolean       @default(false)
-  closedAt      DateTime?
-  notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  items     SaleItem[]
-  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
-}
-
-enum PaymentMethod {
-  CASH
-  CREDIT
-  TRANSFER
-  OTHER
-}
-
-enum SaleStatus {
-  PENDING
-  SETTLED
-  CANCELLED
-}
-
-model SaleItem {
-  id        String  @id @default(uuid())
-  saleId    String
-  productId String
-  quantity  Int
-  price     Decimal @db.Decimal(10, 2)
-
-  sale Sale @relation(fields: [saleId], references: [id])
-}
-
-model Income {
-  id          String    @id @default(uuid())
-  tenantId    String
-  locationId  String
-  userId      String
-  cashCloseId String?
-  concept     String
-  date        DateTime
-  amount      Decimal   @db.Decimal(10, 2)
-  isClosed    Boolean   @default(false)
-  closedAt    DateTime?
-  notes       String?
-  createdAt   DateTime  @default(now())
-
-  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
-}
-
-model Expense {
-  id          String    @id @default(uuid())
-  tenantId    String
-  locationId  String
-  userId      String
-  cashCloseId String?
-  concept     String
-  date        DateTime
-  amount      Decimal   @db.Decimal(10, 2)
-  isClosed    Boolean   @default(false)
-  closedAt    DateTime?
-  notes       String?
-  createdAt   DateTime  @default(now())
-
-  cashClose CashClose? @relation(fields: [cashCloseId], references: [id])
-}
-
-model CashClose {
-  id           String   @id @default(uuid())
-  tenantId     String
-  locationId   String
-  userId       String
-  periodStart  DateTime
-  periodEnd    DateTime
-  closedAt     DateTime
-  cashTotal    Decimal  @db.Decimal(10, 2)
-  creditTotal  Decimal  @db.Decimal(10, 2)
-  incomeTotal  Decimal  @db.Decimal(10, 2)
-  expenseTotal Decimal  @db.Decimal(10, 2)
-  netTotal     Decimal  @db.Decimal(10, 2)
-  notes        String?
-  createdAt    DateTime @default(now())
-
-  sales    Sale[]
-  incomes  Income[]
-  expenses Expense[]
-}
 
 // ─────────────────────────────────────────────
 // COMPLIANCE — LFPDPPP / NOM-004 / NOM-024
@@ -674,4 +579,147 @@ enum AuditAction {
   EXPORT
   CONSENT_GRANTED
   CONSENT_REVOKED
+}
+
+// ─────────────────────────────────────────────
+// MÓDULO 4: VENTAS (Caja)
+// ─────────────────────────────────────────────
+
+model Sale {
+  id        String   @id @default(uuid())
+  tenantId  String
+  locationId String
+  folio     String   @unique
+  totalAmount Decimal @db.Decimal(10, 2)
+  paymentType PaymentType
+  status    SaleStatus @default(ACTIVE)
+  isClosed  Boolean  @default(false)
+  userId    String
+  notes     String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  finishedAt DateTime?
+  settledAt DateTime?
+  closedAt  DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+  items     SaleItem[]
+
+  @@index([tenantId, locationId, createdAt])
+  @@index([tenantId, status])
+  @@index([folio])
+  @@unique([tenantId, locationId, folio])
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  tax       Decimal  @db.Decimal(10, 2)
+  subtotal  Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  sale      Sale     @relation(fields: [saleId], references: [id])
+
+  @@index([saleId])
+}
+
+enum SaleStatus {
+  ACTIVE
+  FINISHED
+  SETTLED
+  CANCELLED
+}
+
+model Income {
+  id        String   @id @default(uuid())
+  tenantId  String
+  locationId String
+  type      IncomeType
+  customType String? @db.VarChar(100)
+  amount    Decimal  @db.Decimal(10, 2)
+  description String? @db.VarChar(500)
+  status    IncomeStatus @default(ACTIVE)
+  isClosed  Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  cancelledAt DateTime?
+  closedAt  DateTime?
+
+  user      User     @relation("IncomeUser", fields: [userId], references: [id])
+
+  @@index([tenantId, locationId, createdAt])
+  @@index([tenantId, status])
+}
+
+enum IncomeType {
+  SERVICE_FEE
+  DEPOSIT
+  TRANSFER
+  REFUND
+  OTHER
+}
+
+enum IncomeStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model Expense {
+  id        String   @id @default(uuid())
+  tenantId  String
+  locationId String
+  type      ExpenseType
+  customType String? @db.VarChar(100)
+  amount    Decimal  @db.Decimal(10, 2)
+  description String? @db.VarChar(500)
+  status    ExpenseStatus @default(ACTIVE)
+  isClosed  Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  cancelledAt DateTime?
+  closedAt  DateTime?
+
+  user      User     @relation("ExpenseUser", fields: [userId], references: [id])
+
+  @@index([tenantId, locationId, createdAt])
+  @@index([tenantId, status])
+}
+
+enum ExpenseType {
+  PAYROLL
+  SUPPLIES
+  UTILITIES
+  MAINTENANCE
+  OTHER
+}
+
+enum ExpenseStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model CashClose {
+  id              String   @id @default(uuid())
+  tenantId        String
+  locationId      String
+  date            DateTime @db.Date
+  status          CashCloseStatus @default(OPEN)
+  calculatedTotal Decimal  @db.Decimal(10, 2)
+  salesTotal      Decimal  @db.Decimal(10, 2)
+  incomesTotal    Decimal  @db.Decimal(10, 2)
+  expensesTotal   Decimal  @db.Decimal(10, 2)
+  userId          String
+  createdAt       DateTime @default(now())
+  closedAt        DateTime @default(now())
+
+  user            User     @relation("CashCloseUser", fields: [userId], references: [id])
+
+  @@unique([tenantId, locationId, date])
+}
+
+enum CashCloseStatus {
+  OPEN
+  CLOSED
 }

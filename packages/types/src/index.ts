@@ -12,3 +12,7 @@ export * from './companies-plans.schemas.js';
 export * from './products.schemas.js';
 export * from './suppliers.schemas.js';
 export * from './purchases.schemas.js';
+export * from './sales.schemas.js';
+export * from './income.schemas.js';
+export * from './expense.schemas.js';
+export * from './cash-close.schemas.js';

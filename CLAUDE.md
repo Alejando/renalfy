@@ -1045,6 +1045,8 @@ Para poder correr el script de migración de SUTR, deben estar listos: **Sprints
 - PostgreSQL 16 con RLS — tablas `Purchase`, `PurchaseItem`, `InventoryMovement`, `InventoryMovementItem`, `LocationStock`, `PurchaseOrderItem` (015-sprint-dulo-compras)
 - TypeScript 5.3, Node.js 25, React 19 (Next.js 16 App Router) + Next.js 16, shadcn/ui, Tailwind CSS v4, React Hook Form + Zod, Vitest + React Testing Library (020-sprint-dulo-compras-ui)
 - PostgreSQL 16 (backend already has data); frontend consumes API endpoints (020-sprint-dulo-compras-ui)
+- TypeScript 5.3, Node.js 25, NestJS 11 (backend) + NestJS 11, Prisma 7, PostgreSQL 16, nestjs-zod, @repo/types (Zod schemas) (021-sprint-modulo-ventas)
+- PostgreSQL 16 with Row-Level Security (RLS) — 5 new tables: `Sale`, `SaleItem`, `Income`, `Expense`, `CashClose` (021-sprint-modulo-ventas)
 
 ## Recent Changes
 - Sprint 19: Purchases + Inventory Movements backend implemented with atomic transactions, accumulated quantity validation, state machine (CONFIRMED → RECEIVED → COMPLETED), InventoryMovement with PURCHASE-{id} reference. 328/328 tests passing. TypeScript typing best practices added to CLAUDE.md.

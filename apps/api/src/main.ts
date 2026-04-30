@@ -1,14 +1,15 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
+import * as express from 'express';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configure bodyParser limits
-  app.use(require('express').json({ limit: '10kb' }));
-  app.use(require('express').urlencoded({ limit: '10kb' }));
+  app.use(express.json({ limit: '10kb' }));
+  app.use(express.urlencoded({ limit: '10kb' }));
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ZodValidationPipe());

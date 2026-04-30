@@ -24,6 +24,10 @@ import { SuppliersModule } from './suppliers/suppliers.module.js';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module.js';
 import { PurchasesModule } from './purchases/purchases.module.js';
 import { InventoryMovementsModule } from './inventory-movements/inventory-movements.module.js';
+import { SalesModule } from './sales/sales.module.js';
+import { IncomeModule } from './income/income.module.js';
+import { ExpenseModule } from './expense/expense.module.js';
+import { CashCloseModule } from './cash-close/cash-close.module.js';
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -70,6 +74,10 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     PurchaseOrdersModule,
     PurchasesModule,
     InventoryMovementsModule,
+    SalesModule,
+    IncomeModule,
+    ExpenseModule,
+    CashCloseModule,
   ],
   providers: [
     // Filters run first to catch exceptions
