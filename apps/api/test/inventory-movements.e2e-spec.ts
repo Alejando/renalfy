@@ -4,6 +4,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { cleanupDatabase, closeCleanupClient } from './cleanup.js';
 
 describe('Inventory Movements E2E', () => {
   let app: INestApplication;
@@ -35,6 +36,7 @@ describe('Inventory Movements E2E', () => {
 
   afterAll(async () => {
     await app.close();
+    await closeCleanupClient();
   });
 
   beforeEach(async () => {
@@ -109,13 +111,8 @@ describe('Inventory Movements E2E', () => {
   });
 
   afterEach(async () => {
-    // Cleanup: delete test data in order
-    await prisma.inventoryMovementItem.deleteMany({});
-    await prisma.inventoryMovement.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.location.deleteMany({});
-    await prisma.user.deleteMany({});
-    await prisma.tenant.deleteMany({});
+    // Cleanup using superuser client to bypass RLS
+    await cleanupDatabase();
   });
 
   describe('GET /api/inventory-movements (list)', () => {

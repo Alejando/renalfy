@@ -4,6 +4,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { cleanupDatabase, closeCleanupClient } from './cleanup.js';
 
 describe('CashClose E2E', () => {
   let app: INestApplication;
@@ -40,6 +41,7 @@ describe('CashClose E2E', () => {
 
   afterAll(async () => {
     await app.close();
+    await closeCleanupClient();
   });
 
   beforeEach(async () => {
@@ -154,19 +156,12 @@ describe('CashClose E2E', () => {
   });
 
   afterEach(async () => {
-    // Cleanup
-    await prisma.saleItem.deleteMany({ where: { saleId: { in: saleIds } } });
-    await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
-    await prisma.income.deleteMany({ where: { id: { in: incomeIds } } });
-    await prisma.expense.deleteMany({ where: { id: { in: expenseIds } } });
-    if (cashCloseId) {
-      await prisma.cashClose.deleteMany({ where: { id: cashCloseId } });
-    }
-    await prisma.locationStock.deleteMany({ where: { locationId } });
-    await prisma.product.deleteMany({ where: { tenantId } });
-    await prisma.location.deleteMany({ where: { id: locationId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
+    // Cleanup using superuser client to bypass RLS
+    await cleanupDatabase();
+    saleIds.length = 0;
+    incomeIds.length = 0;
+    expenseIds.length = 0;
+    cashCloseId = '';
   });
 
   describe('POST /api/cash-close', () => {

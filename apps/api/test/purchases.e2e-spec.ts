@@ -1,9 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import {
+  cleanupDatabase,
+  closeCleanupClient,
+  getCleanupClient,
+} from './cleanup.js';
 
 describe('Purchases E2E', () => {
   let app: INestApplication;
@@ -37,10 +42,11 @@ describe('Purchases E2E', () => {
 
   afterAll(async () => {
     await app.close();
+    await closeCleanupClient();
   });
 
   beforeEach(async () => {
-    // Setup: create tenant, user, location, supplier, product, and purchase order
+    // Setup: create tenant first (no tenant context needed for this)
     const tenantRes = await prisma.tenant.create({
       data: {
         slug: `test-${Date.now()}`,
@@ -49,6 +55,10 @@ describe('Purchases E2E', () => {
     });
     tenantId = tenantRes.id;
 
+    // Set tenant context for remaining operations
+    await prisma.setTenantContext(tenantId);
+
+    // Now create other entities with tenant context set
     const userRes = await prisma.user.create({
       data: {
         tenantId,
@@ -113,33 +123,23 @@ describe('Purchases E2E', () => {
     });
     purchaseOrderItemId = poItemRes.id;
 
-    // Login and get token
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({
-        email: userRes.email,
-        password: 'password',
-      });
+    // Clear tenant context when done with setup
+    await prisma.clearTenantContext();
 
-    // If password doesn't match, we need to create a user with known password or mock auth
-    // For now, we'll use a JWT directly
-    accessToken = loginRes.body.accessToken || 'mock-token';
+    // Create JWT token directly (login won't work with hashed passwords in tests)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const jwt = require('jsonwebtoken') as {
+      sign(payload: unknown, secret: string, options: unknown): string;
+    };
+    const jwtSecret = process.env.JWT_SECRET || 'test-secret';
+    accessToken = jwt.sign({ userId, tenantId, role: 'OWNER' }, jwtSecret, {
+      expiresIn: '15m',
+    });
   });
 
   afterEach(async () => {
-    // Cleanup: delete test data in order (respecting FK constraints)
-    await prisma.purchaseItem.deleteMany({});
-    await prisma.purchase.deleteMany({});
-    await prisma.inventoryMovement.deleteMany({});
-    await prisma.inventoryMovementItem.deleteMany({});
-    await prisma.purchaseOrderItem.deleteMany({});
-    await prisma.purchaseOrder.deleteMany({});
-    await prisma.locationStock.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.supplier.deleteMany({});
-    await prisma.location.deleteMany({});
-    await prisma.user.deleteMany({});
-    await prisma.tenant.deleteMany({});
+    // Cleanup using superuser client to bypass RLS
+    await cleanupDatabase();
   });
 
   describe('POST /api/purchases (receive purchase order)', () => {

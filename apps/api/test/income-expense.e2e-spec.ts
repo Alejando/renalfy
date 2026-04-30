@@ -4,6 +4,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { cleanupDatabase, closeCleanupClient } from './cleanup.js';
 
 describe('Income & Expense E2E', () => {
   let app: INestApplication;
@@ -35,6 +36,7 @@ describe('Income & Expense E2E', () => {
 
   afterAll(async () => {
     await app.close();
+    await closeCleanupClient();
   });
 
   beforeEach(async () => {
@@ -82,12 +84,8 @@ describe('Income & Expense E2E', () => {
   });
 
   afterEach(async () => {
-    // Clean up
-    await prisma.income.deleteMany({ where: { tenantId } });
-    await prisma.expense.deleteMany({ where: { tenantId } });
-    await prisma.location.deleteMany({ where: { tenantId } });
-    await prisma.user.deleteMany({ where: { tenantId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
+    // Cleanup using superuser client to bypass RLS
+    await cleanupDatabase();
   });
 
   describe('Income - POST /api/income', () => {

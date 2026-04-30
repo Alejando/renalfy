@@ -312,9 +312,9 @@ describe('SalesService', () => {
         (fn: (tx: Record<string, unknown>) => Promise<unknown>) => {
           const mockTx = makeTx({
             locationStock: {
-              update: jest.fn().mockImplementation(async () => {
+              update: jest.fn().mockImplementation(() => {
                 updateCalled = true;
-                return mockLocationStock;
+                return Promise.resolve(mockLocationStock);
               }),
               findUniqueOrThrow: jest.fn().mockResolvedValue(mockLocationStock),
             },

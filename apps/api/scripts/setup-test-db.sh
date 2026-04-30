@@ -10,9 +10,9 @@ echo "Setting up test database..."
 PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -tc "SELECT 1 FROM pg_roles WHERE rolname = 'renalfy_app'" | grep -q 1 || \
 PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -c "CREATE ROLE renalfy_app WITH PASSWORD 'renalfy_app_dev' LOGIN;"
 
-# Create role renalfy if it doesn't exist (for migrations)
+# Create role renalfy if it doesn't exist (for migrations and cleanup — needs SUPERUSER for RLS bypass)
 PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -tc "SELECT 1 FROM pg_roles WHERE rolname = 'renalfy'" | grep -q 1 || \
-PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -c "CREATE ROLE renalfy WITH PASSWORD 'renalfy_dev' LOGIN;"
+PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -c "CREATE ROLE renalfy WITH PASSWORD 'renalfy_dev' LOGIN SUPERUSER;"
 
 # Create test database if it doesn't exist
 PGPASSWORD=postgres psql -U postgres -h localhost -p 5434 -tc "SELECT 1 FROM pg_database WHERE datname = 'renalfy_test'" | grep -q 1 || \

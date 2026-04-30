@@ -11,10 +11,7 @@ import type {
   PaginatedSalesResponse,
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { Sale, SaleItem, Prisma } from '../../generated/prisma/client.js';
-
-const MANAGER_ROLES = ['MANAGER', 'ADMIN', 'OWNER'];
-const DEFAULT_PAGE_LIMIT = 50;
+import type { Prisma } from '../../generated/prisma/client.js';
 
 function toString(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -55,8 +52,8 @@ function buildSaleResponse(sale: {
     locationId: sale.locationId,
     folio: sale.folio,
     totalAmount: toString(sale.totalAmount),
-    paymentType: sale.paymentType as any,
-    status: sale.status as any,
+    paymentType: sale.paymentType as SaleResponse['paymentType'],
+    status: sale.status as SaleResponse['status'],
     isClosed: sale.isClosed,
     userId: sale.userId,
     notes: sale.notes,
