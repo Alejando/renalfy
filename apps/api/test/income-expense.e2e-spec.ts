@@ -64,14 +64,15 @@ describe('Income & Expense E2E', () => {
       data: {
         tenantId,
         name: 'Test Location',
-        code: 'TST',
       },
     });
     locationId = locationRes.id;
 
     // Create a valid JWT token
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const jwt = require('jsonwebtoken');
+    const jwt = require('jsonwebtoken') as {
+      sign(payload: unknown, secret: string, options: unknown): string;
+    };
     const jwtSecret = process.env.JWT_SECRET || 'test-secret';
     accessToken = jwt.sign(
       { sub: userId, tenantId, role: 'MANAGER', locationId },
@@ -126,7 +127,9 @@ describe('Income & Expense E2E', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const jwt = require('jsonwebtoken');
+      const jwt = require('jsonwebtoken') as {
+        sign(payload: unknown, secret: string, options: unknown): string;
+      };
       const jwtSecret = process.env.JWT_SECRET || 'test-secret';
       const staffToken = jwt.sign(
         { sub: staffRes.id, tenantId, role: 'STAFF', locationId },
@@ -328,7 +331,9 @@ describe('Income & Expense E2E', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const jwt = require('jsonwebtoken');
+      const jwt = require('jsonwebtoken') as {
+        sign(payload: unknown, secret: string, options: unknown): string;
+      };
       const jwtSecret = process.env.JWT_SECRET || 'test-secret';
       const staffToken = jwt.sign(
         { sub: staffRes.id, tenantId, role: 'STAFF', locationId },

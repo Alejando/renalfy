@@ -151,86 +151,95 @@ export class SalesService {
     const totalAmount = this.calculateTotal(dto.items);
 
     // Create sale with atomic transaction
-    const sale = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Generate folio
-      const locationCode = location.name.substring(0, 3).toUpperCase() || 'LOC';
-      const folio = await this.generateFolio(
-        tx,
-        tenantId,
-        dto.locationId,
-        locationCode,
-      );
-
-      // Create sale
-      const createdSale = await tx.sale.create({
-        data: {
+    const sale = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Generate folio
+        const locationCode =
+          location.name.substring(0, 3).toUpperCase() || 'LOC';
+        const folio = await this.generateFolio(
+          tx,
           tenantId,
-          locationId: dto.locationId,
-          folio,
-          totalAmount,
-          paymentType: dto.paymentType,
-          status: 'ACTIVE',
-          userId,
-          notes: dto.notes || null,
-        },
-      });
+          dto.locationId,
+          locationCode,
+        );
 
-      // Create sale items
-      await tx.saleItem.createMany({
-        data: dto.items.map((item) => ({
-          saleId: createdSale.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          tax: item.tax,
-        })),
-      });
+        // Create sale
+        const createdSale = await tx.sale.create({
+          data: {
+            tenantId,
+            locationId: dto.locationId,
+            folio,
+            totalAmount,
+            paymentType: dto.paymentType,
+            status: 'ACTIVE',
+            userId,
+            notes: dto.notes || null,
+          },
+        });
 
-      // Decrement LocationStock for each item
-      for (const item of dto.items) {
-        await tx.locationStock.update({
-          where: {
-            locationId_productId: {
-              locationId: dto.locationId,
+        // Create sale items
+        await tx.saleItem.createMany({
+          data: dto.items.map((item) => {
+            const unitPrice = parseFloat(item.unitPrice);
+            const tax = parseFloat(item.tax);
+            const subtotal = item.quantity * (unitPrice + tax);
+            return {
+              saleId: createdSale.id,
               productId: item.productId,
+              quantity: item.quantity,
+              unitPrice,
+              tax,
+              subtotal,
+            };
+          }),
+        });
+
+        // Decrement LocationStock for each item
+        for (const item of dto.items) {
+          await tx.locationStock.update({
+            where: {
+              locationId_productId: {
+                locationId: dto.locationId,
+                productId: item.productId,
+              },
             },
-          },
-          data: {
-            quantity: {
-              decrement: item.quantity,
+            data: {
+              quantity: {
+                decrement: item.quantity,
+              },
             },
-          },
-        });
-      }
+          });
+        }
 
-      // Create inventory movement
-      await tx.inventoryMovement.create({
-        data: {
-          tenantId,
-          locationId: dto.locationId,
-          movementType: 'OUT',
-          referenceType: 'SALE',
-          referenceId: createdSale.id,
-          date: new Date(),
-          notes: `Venta ${folio}`,
-        },
-      });
-
-      // Update plan if BENEFIT payment
-      if (dto.paymentType === 'BENEFIT' && dto.linkedPlanId) {
-        const plan = await tx.plan.findUniqueOrThrow({
-          where: { id: dto.linkedPlanId },
-        });
-        await tx.plan.update({
-          where: { id: dto.linkedPlanId },
+        // Create inventory movement
+        await tx.inventoryMovement.create({
           data: {
-            usedSessions: plan.usedSessions + 1,
+            tenantId,
+            locationId: dto.locationId,
+            userId,
+            type: 'OUT',
+            reference: createdSale.id,
+            date: new Date(),
+            notes: `Venta ${folio}`,
           },
         });
-      }
 
-      return createdSale;
-    });
+        // Update plan if BENEFIT payment
+        if (dto.paymentType === 'BENEFIT' && dto.linkedPlanId) {
+          const plan = await tx.plan.findUniqueOrThrow({
+            where: { id: dto.linkedPlanId },
+          });
+          await tx.plan.update({
+            where: { id: dto.linkedPlanId },
+            data: {
+              usedSessions: plan.usedSessions + 1,
+            },
+          });
+        }
+
+        return createdSale;
+      },
+    );
 
     // Fetch and return full sale with items
     const fullSale = await this.prisma.sale.findUniqueOrThrow({
@@ -259,9 +268,11 @@ export class SalesService {
       WHERE "tenantId" = ${tenantId}
       AND "locationId" = ${locationId}
       AND "folio" LIKE ${`${locationCode}-${year}-%`}
-    `) as Array<{ next_seq: number }>;
+    `) as unknown;
 
-    const nextSeq = result[0]?.next_seq || 1;
+    const rows = Array.isArray(result) ? result : [];
+    const row = rows[0] as { next_seq: number } | undefined;
+    const nextSeq = row?.next_seq || 1;
     const folio = `${locationCode}-${year}-${nextSeq.toString().padStart(5, '0')}`;
 
     return folio;

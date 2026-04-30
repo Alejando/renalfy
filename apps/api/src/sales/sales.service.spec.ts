@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unused-vars */
 // NOTE: This test file uses `any` in Jest mock implementations for callback args.
 // This is allowed per CLAUDE.md: "In tests, greater leniency is permitted with `any`
 // if necessary for complex mocks, but always document why." Prisma delegate mocks
@@ -110,7 +110,7 @@ function makeTx(
         status: 'ACTIVE',
         isClosed: false,
         userId: USER_ID,
-        notes: null,
+        notes: undefined,
         createdAt: new Date(),
         finishedAt: null,
         settledAt: null,
@@ -180,7 +180,7 @@ describe('SalesService', () => {
           status: 'ACTIVE',
           isClosed: false,
           userId: USER_ID,
-          notes: null,
+          notes: undefined,
           createdAt: new Date(),
           finishedAt: null,
           settledAt: null,
@@ -205,7 +205,12 @@ describe('SalesService', () => {
           ],
         }),
       },
-      $transaction: jest.fn().mockImplementation((fn) => fn(makeTx())),
+      $transaction: jest
+        .fn()
+        .mockImplementation(
+          (fn: (tx: Record<string, unknown>) => Promise<unknown>) =>
+            fn(makeTx()),
+        ),
       $executeRaw: jest.fn().mockResolvedValue(1),
     };
     service = new SalesService(mockPrisma as PrismaService);
@@ -224,7 +229,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       const result = await service.create(
@@ -293,7 +298,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await expect(
@@ -303,18 +308,20 @@ describe('SalesService', () => {
 
     it('T040: should decrement LocationStock atomically with Sale creation', async () => {
       let updateCalled = false;
-      mockPrisma.$transaction.mockImplementation((fn) => {
-        const mockTx = makeTx({
-          locationStock: {
-            update: jest.fn().mockImplementation(async () => {
-              updateCalled = true;
-              return mockLocationStock;
-            }),
-            findUniqueOrThrow: jest.fn().mockResolvedValue(mockLocationStock),
-          },
-        });
-        return fn(mockTx);
-      });
+      mockPrisma.$transaction.mockImplementation(
+        (fn: (tx: Record<string, unknown>) => Promise<unknown>) => {
+          const mockTx = makeTx({
+            locationStock: {
+              update: jest.fn().mockImplementation(async () => {
+                updateCalled = true;
+                return mockLocationStock;
+              }),
+              findUniqueOrThrow: jest.fn().mockResolvedValue(mockLocationStock),
+            },
+          });
+          return fn(mockTx);
+        },
+      );
 
       const dto: CreateSaleDto = {
         locationId: LOCATION_ID,
@@ -327,7 +334,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await service.create(TENANT_ID, USER_ID, 'MANAGER', LOCATION_ID, dto);
@@ -348,7 +355,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await service.create(TENANT_ID, USER_ID, 'MANAGER', LOCATION_ID, dto);
@@ -369,7 +376,7 @@ describe('SalesService', () => {
             tax: '0.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await service.create(TENANT_ID, USER_ID, 'MANAGER', LOCATION_ID, dto);
@@ -389,7 +396,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await expect(
@@ -417,7 +424,7 @@ describe('SalesService', () => {
             tax: '10.00',
           },
         ],
-        notes: null,
+        notes: undefined,
       };
 
       await expect(
