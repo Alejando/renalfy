@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Audit } from '../common/decorators/audit.decorator.js';
 import { ExpenseService } from './expense.service.js';
 import { CreateExpenseDto } from './dto/create-expense.dto.js';
 import { ExpenseQueryDto } from './dto/expense-query.dto.js';
@@ -25,6 +26,7 @@ export class ExpenseController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Audit({ action: 'CREATE', resource: 'Expense' })
   create(
     @CurrentUser()
     user: {
@@ -44,6 +46,7 @@ export class ExpenseController {
   }
 
   @Get()
+  @Audit({ action: 'READ', resource: 'Expense' })
   findAll(
     @CurrentUser() user: { tenantId: string; role: UserRole },
     @Query() query: ExpenseQueryDto,
@@ -54,6 +57,7 @@ export class ExpenseController {
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'ADMIN', 'MANAGER')
+  @Audit({ action: 'DELETE', resource: 'Expense' })
   cancel(@CurrentUser() user: { tenantId: string }, @Param('id') id: string) {
     return this.expenseService.cancel(user.tenantId, id);
   }

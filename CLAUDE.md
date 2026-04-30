@@ -252,6 +252,38 @@ Request HTTP
 - Payload del access token: `{ sub: userId, tenantId, role }`
 - Endpoints: `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, `PATCH /api/auth/me/password`
 
+### Módulo 4 — Ventas, Ingresos, Egresos, Corte de Caja
+
+**Endpoints:**
+- **Sales** (venta = transacción con inventory deduction):
+  - `POST /api/sales` — crear venta (auto-genera folio LOC-YYYY-NNNNN, decrementa stock, crea InventoryMovement)
+  - `GET /api/sales` — listar ventas (paginado, filtros por status/locationId/fecha)
+  - `GET /api/sales/:id` — detalles venta
+  - `PATCH /api/sales/:id/finish` — marcar como FINISHED (pago confirmado)
+  - `PATCH /api/sales/:id/settle` — marcar como SETTLED (reconciliado)
+  - `PATCH /api/sales/:id/cancel` — soft delete (status = CANCELLED, stock reverted)
+- **Income** (ingresos = servicios, depósitos, devoluciones):
+  - `POST /api/income` — registrar ingreso
+  - `GET /api/income` — listar (filtros: tipo/fecha)
+  - `PATCH /api/income/:id/cancel` — cancelar (soft delete, status = CANCELLED)
+- **Expense** (egresos = costos operacionales):
+  - `POST /api/expense` — registrar egreso
+  - `GET /api/expense` — listar (filtros: tipo/fecha)
+  - `PATCH /api/expense/:id/cancel` — cancelar
+- **CashClose** (cierre de caja diario — INMUTABLE):
+  - `POST /api/cash-close` — crear cierre (transacción atómica: calcula totales, marca isClosed=true en todas las transacciones del período, crea CashClose con status=CLOSED)
+  - `GET /api/cash-close` — listar cierres (read-only, filtros: fecha/locationId)
+  - `GET /api/cash-close/:id` — detalles cierre
+
+**Reglas de negocio:**
+- **Folio:** único por (tenantId, locationId, año), generado server-side en transacción atómica
+- **Stock:** decrementado en `LocationStock` al crear venta; si insuficiente → 400 BadRequest
+- **InventoryMovement:** creado automáticamente con tipo OUT, referencia sale ID
+- **Plan.usedSessions:** incrementado si paymentType = BENEFIT; si >= plannedSessions → status = EXHAUSTED
+- **CashClose:** una vez creado (status = CLOSED), todas sus transacciones están locked (isClosed = true), impide crear nuevas para ese período
+- **Permisos:** STAFF rechazado (403), MANAGER limitado a su locationId, OWNER/ADMIN acceso total
+- **Auditoría:** todas las operaciones loggeadas en AuditLog (async, fire-and-forget)
+
 ### Variables de entorno (`apps/api/.env`)
 
 ```

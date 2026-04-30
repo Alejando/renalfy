@@ -14,6 +14,7 @@ import type { CashCloseQuery, CashCloseResponse } from '@repo/types';
 import { CashCloseService } from './cash-close.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { FinancialPermissionGuard } from '../common/guards/financial-permission.guard.js';
+import { Audit } from '../common/decorators/audit.decorator.js';
 import {
   CurrentUser,
   type CurrentUserPayload,
@@ -27,6 +28,7 @@ export class CashCloseController {
   @Post()
   @UseGuards(JwtAuthGuard, FinancialPermissionGuard)
   @HttpCode(HttpStatus.CREATED)
+  @Audit({ action: 'CREATE', resource: 'CashClose' })
   async create(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateCashCloseDto,
@@ -36,6 +38,7 @@ export class CashCloseController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
+  @Audit({ action: 'READ', resource: 'CashClose' })
   async findOne(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
@@ -45,6 +48,7 @@ export class CashCloseController {
 
   @Get()
   @UseGuards(JwtAuthGuard, FinancialPermissionGuard)
+  @Audit({ action: 'READ', resource: 'CashClose' })
   async findByPeriod(
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: CashCloseQuery & { page?: string; limit?: string },
