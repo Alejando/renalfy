@@ -74,9 +74,27 @@ export const PaginatedSalesResponseSchema = z.object({
   limit: z.number().int(),
 });
 
+export const CreateSaleFormSchema = z.object({
+  clientId: z.string().uuid('Cliente es requerido'),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid('Producto es requerido'),
+        quantity: z.number().int().positive('Cantidad debe ser mayor a 0'),
+        unitPrice: z
+          .string()
+          .regex(/^\d+(\.\d{1,2})?$/, 'Formato de precio inválido'),
+      })
+    )
+    .min(1, 'Debe agregar al menos un producto'),
+  paymentType: z.enum(['CASH', 'CREDIT', 'DEBIT', 'TRANSFER'] as const),
+  notes: z.string().max(500).optional(),
+});
+
 export type SaleStatus = z.infer<typeof SaleStatusSchema>;
 export type SaleItem = z.infer<typeof SaleItemSchema>;
 export type CreateSaleDto = z.infer<typeof CreateSaleSchema>;
+export type CreateSaleFormDto = z.infer<typeof CreateSaleFormSchema>;
 export type SaleResponse = z.infer<typeof SaleResponseSchema>;
 export type SaleQuery = z.infer<typeof SaleQuerySchema>;
 export type PaginatedSalesResponse = z.infer<typeof PaginatedSalesResponseSchema>;
