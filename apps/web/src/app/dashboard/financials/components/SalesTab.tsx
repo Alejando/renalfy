@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button.js';
-import { useFinancialStore } from '../store/financial-store.js';
-import { useSales, useCancelSale } from '../hooks/useSales.js';
-import { FinancialFilters } from './filters/FinancialFilters.js';
-import { SalesTable } from './tables/SalesTable.js';
-import { CreateSaleModal } from './modals/CreateSaleModal.js';
+import { Button } from '@/components/ui/button';
+import { useFinancialStore } from '../store/financial-store';
+import { useSales, useCancelSale } from '../hooks/useSales';
+import { FinancialFilters } from './filters/FinancialFilters';
+import { SalesTable } from './tables/SalesTable';
+import { CreateSaleModal } from './modals/CreateSaleModal';
 
 interface SalesFilters {
   dateFrom?: string;

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button.js';
-import { useFinancialStore } from '../store/financial-store.js';
-import { useIncomes, useCancelIncome } from '../hooks/useIncomes.js';
-import { FinancialFilters } from './filters/FinancialFilters.js';
-import { IncomeTable } from './tables/IncomeTable.js';
-import { CreateIncomeModal } from './modals/CreateIncomeModal.js';
+import { Button } from '@/components/ui/button';
+import { useFinancialStore } from '../store/financial-store';
+import { useIncomes, useCancelIncome } from '../hooks/useIncomes';
+import { FinancialFilters } from './filters/FinancialFilters';
+import { IncomeTable } from './tables/IncomeTable';
+import { CreateIncomeModal } from './modals/CreateIncomeModal';
 
 interface IncomeFilters {
   dateFrom?: string;

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button.js';
-import { useFinancialStore } from '../store/financial-store.js';
-import { useCashCloses } from '../hooks/useCashCloses.js';
-import { FinancialFilters } from './filters/FinancialFilters.js';
-import { CashCloseTable } from './tables/CashCloseTable.js';
-import { CreateCashCloseModal } from './modals/CreateCashCloseModal.js';
+import { Button } from '@/components/ui/button';
+import { useFinancialStore } from '../store/financial-store';
+import { useCashCloses } from '../hooks/useCashCloses';
+import { FinancialFilters } from './filters/FinancialFilters';
+import { CashCloseTable } from './tables/CashCloseTable';
+import { CreateCashCloseModal } from './modals/CreateCashCloseModal';
 
 interface CashCloseFilters {
   dateFrom?: string;
