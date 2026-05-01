@@ -68,7 +68,7 @@ export type PaginatedExpenseResponse = z.infer<
 
 export const CreateExpenseFormSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-  type: z.enum(['SUPPLIES', 'UTILITIES', 'STAFF', 'OTHER'] as const),
+  type: z.enum(['PAYROLL', 'SUPPLIES', 'UTILITIES', 'MAINTENANCE', 'OTHER'] as const),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Monto debe ser un número válido')
