@@ -65,3 +65,15 @@ export type ExpenseQuery = z.infer<typeof ExpenseQuerySchema>;
 export type PaginatedExpenseResponse = z.infer<
   typeof PaginatedExpenseResponseSchema
 >;
+
+export const CreateExpenseFormSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
+  type: z.enum(['SUPPLIES', 'UTILITIES', 'STAFF', 'OTHER'] as const),
+  amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, 'Monto debe ser un número válido')
+    .refine((val) => parseFloat(val) > 0, 'Monto debe ser mayor a 0'),
+  description: z.string().max(500).optional(),
+});
+
+export type CreateExpenseFormDto = z.infer<typeof CreateExpenseFormSchema>;

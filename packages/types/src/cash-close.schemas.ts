@@ -45,3 +45,9 @@ export type CashCloseStatus = z.infer<typeof CashCloseStatusSchema>;
 export type CreateCashCloseDto = z.infer<typeof CreateCashCloseSchema>;
 export type CashCloseResponse = z.infer<typeof CashCloseResponseSchema>;
 export type CashCloseQuery = z.infer<typeof CashCloseQuerySchema>;
+
+export const CreateCashCloseFormSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
+});
+
+export type CreateCashCloseFormDto = z.infer<typeof CreateCashCloseFormSchema>;

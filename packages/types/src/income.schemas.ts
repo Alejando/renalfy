@@ -5,6 +5,7 @@ export const IncomeTypeSchema = z.enum([
   'DEPOSIT',
   'TRANSFER',
   'REFUND',
+  'SALES_OTHER',
   'OTHER',
 ]);
 
@@ -65,3 +66,15 @@ export type IncomeQuery = z.infer<typeof IncomeQuerySchema>;
 export type PaginatedIncomeResponse = z.infer<
   typeof PaginatedIncomeResponseSchema
 >;
+
+export const CreateIncomeFormSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
+  type: z.enum(['SALES_OTHER', 'REFUND', 'OTHER'] as const),
+  amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, 'Monto debe ser un número válido')
+    .refine((val) => parseFloat(val) > 0, 'Monto debe ser mayor a 0'),
+  description: z.string().max(500).optional(),
+});
+
+export type CreateIncomeFormDto = z.infer<typeof CreateIncomeFormSchema>;
