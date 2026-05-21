@@ -12,28 +12,28 @@ describe('FinancialFilters', () => {
     vi.useRealTimers();
   });
 
-  it('renders filter inputs', () => {
+  it('renders chip buttons and Limpiar button', () => {
     render(<FinancialFilters />);
 
-    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
-    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
+    expect(screen.getByText('Este Mes')).toBeInTheDocument();
+    expect(screen.getByText('Mes Anterior')).toBeInTheDocument();
+    expect(screen.getByText('Este Año')).toBeInTheDocument();
     expect(screen.getByText('Limpiar')).toBeInTheDocument();
   });
 
-  it('renders sales-specific filters when filterType is sales', () => {
+  it('renders sales-specific client filter when filterType is sales', () => {
     render(<FinancialFilters filterType="sales" />);
 
-    expect(screen.getByLabelText('Cliente ID')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Tipo')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Filtrar por cliente...')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('renders income type select when filterType is income', () => {
     render(<FinancialFilters filterType="income" />);
 
-    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Cliente ID')).not.toBeInTheDocument();
-
-    const typeSelect = screen.getByLabelText('Tipo') as HTMLSelectElement;
+    const typeSelect = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(typeSelect).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Filtrar por cliente...')).not.toBeInTheDocument();
     expect(typeSelect.querySelector('option[value="SALES_OTHER"]')).toBeInTheDocument();
     expect(typeSelect.querySelector('option[value="REFUND"]')).toBeInTheDocument();
   });
@@ -41,62 +41,58 @@ describe('FinancialFilters', () => {
   it('renders expense type select when filterType is expense', () => {
     render(<FinancialFilters filterType="expense" />);
 
-    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
-
-    const typeSelect = screen.getByLabelText('Tipo') as HTMLSelectElement;
+    const typeSelect = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(typeSelect).toBeInTheDocument();
     expect(typeSelect.querySelector('option[value="SUPPLIES"]')).toBeInTheDocument();
     expect(typeSelect.querySelector('option[value="UTILITIES"]')).toBeInTheDocument();
   });
 
-  it('calls onFilter with debounce when dateFrom changes', async () => {
+  it('calls onFilter with date range when Este Mes chip is clicked', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-30' } });
-
-    // Should not be called immediately
-    expect(onFilter).not.toHaveBeenCalled();
-
-    // Fast-forward 300ms for debounce
+    fireEvent.click(screen.getByText('Este Mes'));
     vi.advanceTimersByTime(300);
 
-    expect(onFilter).toHaveBeenCalledWith({ dateFrom: '2026-04-30' });
+    expect(onFilter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dateFrom: expect.any(String),
+        dateTo: expect.any(String),
+      })
+    );
   });
 
-  it('calls onFilter with debounce when dateTo changes', async () => {
-    const onFilter = vi.fn();
-    render(<FinancialFilters onFilter={onFilter} />);
-
-    const dateToInput = screen.getByLabelText('Hasta') as HTMLInputElement;
-    fireEvent.change(dateToInput, { target: { value: '2026-05-30' } });
-
-    // Should not be called immediately
-    expect(onFilter).not.toHaveBeenCalled();
-
-    // Fast-forward 300ms for debounce
-    vi.advanceTimersByTime(300);
-
-    expect(onFilter).toHaveBeenCalledWith({ dateTo: '2026-05-30' });
-  });
-
-  it('calls onFilter with clientId for sales filter type', async () => {
+  it('calls onFilter with debounce when clientId changes', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const clientIdInput = screen.getByLabelText('Cliente ID') as HTMLInputElement;
-    fireEvent.change(clientIdInput, { target: { value: 'client-123' } });
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
+
+    expect(onFilter).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(300);
 
     expect(onFilter).toHaveBeenCalledWith({ clientId: 'client-123' });
   });
 
-  it('calls onFilter with type for income filter type', async () => {
+  it('calls onFilter with clientId for sales filter type', () => {
+    const onFilter = vi.fn();
+    render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
+
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
+
+    vi.advanceTimersByTime(300);
+
+    expect(onFilter).toHaveBeenCalledWith({ clientId: 'client-123' });
+  });
+
+  it('calls onFilter with type for income filter type', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="income" />);
 
-    const typeSelect = screen.getByLabelText('Tipo') as HTMLSelectElement;
+    const typeSelect = screen.getByRole('combobox') as HTMLSelectElement;
     fireEvent.change(typeSelect, { target: { value: 'REFUND' } });
 
     vi.advanceTimersByTime(300);
@@ -104,117 +100,98 @@ describe('FinancialFilters', () => {
     expect(onFilter).toHaveBeenCalledWith({ type: 'REFUND' });
   });
 
-  it('combines multiple filters in single call', async () => {
+  it('combines date chip and client filter in single debounced call', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
-    const dateToInput = screen.getByLabelText('Hasta') as HTMLInputElement;
-    const clientIdInput = screen.getByLabelText('Cliente ID') as HTMLInputElement;
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
 
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
-    fireEvent.change(dateToInput, { target: { value: '2026-04-30' } });
-    fireEvent.change(clientIdInput, { target: { value: 'client-456' } });
+    fireEvent.click(screen.getByText('Este Mes'));
+    fireEvent.change(clientInput, { target: { value: 'client-456' } });
 
     vi.advanceTimersByTime(300);
 
-    expect(onFilter).toHaveBeenCalledWith({
-      dateFrom: '2026-04-01',
-      dateTo: '2026-04-30',
-      clientId: 'client-456',
-    });
+    expect(onFilter).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        clientId: 'client-456',
+        dateFrom: expect.any(String),
+        dateTo: expect.any(String),
+      })
+    );
   });
 
-  it('debounces rapid filter changes', async () => {
+  it('debounces rapid filter changes', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
 
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
+    fireEvent.change(clientInput, { target: { value: 'a' } });
     vi.advanceTimersByTime(100);
 
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-15' } });
+    fireEvent.change(clientInput, { target: { value: 'ab' } });
     vi.advanceTimersByTime(100);
 
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-30' } });
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
     vi.advanceTimersByTime(300);
 
-    // Should only be called once with the final value
     expect(onFilter).toHaveBeenCalledTimes(1);
-    expect(onFilter).toHaveBeenCalledWith({ dateFrom: '2026-04-30' });
+    expect(onFilter).toHaveBeenCalledWith({ clientId: 'client-123' });
   });
 
-  it('resets all filters when Limpiar button is clicked', async () => {
+  it('resets all filters when Limpiar button is clicked', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
-    const dateToInput = screen.getByLabelText('Hasta') as HTMLInputElement;
-    const clientIdInput = screen.getByLabelText('Cliente ID') as HTMLInputElement;
+    const clientInput = screen.getByPlaceholderText(
+      'Filtrar por cliente...'
+    ) as HTMLInputElement;
 
-    // Set some values
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
-    fireEvent.change(dateToInput, { target: { value: '2026-04-30' } });
-    fireEvent.change(clientIdInput, { target: { value: 'client-123' } });
-
+    fireEvent.click(screen.getByText('Este Mes'));
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
     vi.advanceTimersByTime(300);
 
-    // Reset
-    const limpiarButton = screen.getByText('Limpiar');
-    fireEvent.click(limpiarButton);
+    fireEvent.click(screen.getByText('Limpiar'));
 
-    // Input values should be cleared
-    expect(dateFromInput.value).toBe('');
-    expect(dateToInput.value).toBe('');
-    expect(clientIdInput.value).toBe('');
-
-    // onFilter should be called with empty object
+    expect(clientInput.value).toBe('');
     expect(onFilter).toHaveBeenLastCalledWith({});
   });
 
-  it('does not include clientId in filter for non-sales types', async () => {
+  it('does not include clientId in filter for non-sales types', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="income" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-30' } });
-
+    fireEvent.click(screen.getByText('Este Mes'));
     vi.advanceTimersByTime(300);
 
-    // Should only have dateFrom, not clientId
-    expect(onFilter).toHaveBeenCalledWith({ dateFrom: '2026-04-30' });
     expect(onFilter).not.toHaveBeenCalledWith(
       expect.objectContaining({ clientId: expect.any(String) })
     );
   });
 
-  it('does not include type in filter for sales type', async () => {
+  it('does not include type in filter for sales type', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const dateFromInput = screen.getByLabelText('Desde') as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-30' } });
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
 
     vi.advanceTimersByTime(300);
 
-    // Should only have dateFrom, not type
-    expect(onFilter).toHaveBeenCalledWith({ dateFrom: '2026-04-30' });
     expect(onFilter).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: expect.any(String) })
     );
   });
 
-  it('excludes empty filter values from callback', async () => {
+  it('excludes empty filter values from callback', () => {
     const onFilter = vi.fn();
     render(<FinancialFilters onFilter={onFilter} filterType="sales" />);
 
-    const clientIdInput = screen.getByLabelText('Cliente ID') as HTMLInputElement;
-    fireEvent.change(clientIdInput, { target: { value: 'client-123' } });
+    const clientInput = screen.getByPlaceholderText('Filtrar por cliente...');
+    fireEvent.change(clientInput, { target: { value: 'client-123' } });
 
     vi.advanceTimersByTime(300);
 
-    // Should only include clientId, not empty dateFrom/dateTo
     expect(onFilter).toHaveBeenCalledWith({ clientId: 'client-123' });
   });
 });

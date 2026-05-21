@@ -28,7 +28,7 @@ describe('IncomeTab', () => {
           Promise.resolve([
             {
               id: '1',
-              date: '2026-04-30',
+              createdAt: '2026-04-30T00:00:00.000Z',
               type: 'SALES_OTHER',
               amount: 500,
               description: 'Other sales',
@@ -39,43 +39,40 @@ describe('IncomeTab', () => {
     }) as typeof global.fetch;
   });
 
-  it('renders tab with title and create button', () => {
+  it('renders tab with create button', () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
-    expect(screen.getByText('Ingresos')).toBeInTheDocument();
-    expect(screen.getByText('Crear Ingreso')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument();
   });
 
-  it('renders filters section', () => {
+  it('renders filters section with date chips and type select', () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
-    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
-    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
-    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
+    expect(screen.getByText('Este Mes')).toBeInTheDocument();
+    expect(screen.getByText('Mes Anterior')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('fetches and displays incomes data', async () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('SALES_OTHER')).toBeInTheDocument();
+      expect(screen.getByText('Otras Ventas')).toBeInTheDocument();
     });
   });
 
   it('opens create modal when button is clicked', async () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
 
-    const createButton = screen.getByText('Crear Ingreso');
+    const createButton = screen.getByText('Nuevo Ingreso');
     fireEvent.click(createButton);
 
     expect(createButton).toBeInTheDocument();
   });
 
-  it('filters incomes when filter values change', async () => {
+  it('filters incomes when chip is clicked', async () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
 
-    const dateFromInput = screen.getByLabelText(
-      'Desde'
-    ) as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
+    const esMesButton = screen.getByText('Este Mes');
+    fireEvent.click(esMesButton);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -86,10 +83,9 @@ describe('IncomeTab', () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('SALES_OTHER')).toBeInTheDocument();
+      expect(screen.getByText('Otras Ventas')).toBeInTheDocument();
     });
 
-    // Check table headers exist
     const headers = screen.getAllByText('Fecha');
     expect(headers.length).toBeGreaterThan(0);
   });
@@ -97,9 +93,8 @@ describe('IncomeTab', () => {
   it('allows filtering by income type', async () => {
     render(<IncomeTab />, { wrapper: queryWrapper });
 
-    const typeSelect = screen.getByLabelText(
-      'Tipo'
-    ) as HTMLSelectElement;
+    // First combobox is the FinancialFilters type select
+    const typeSelect = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
     fireEvent.change(typeSelect, { target: { value: 'REFUND' } });
 
     await waitFor(() => {

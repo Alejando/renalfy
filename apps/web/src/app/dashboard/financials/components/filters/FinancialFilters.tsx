@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useCallback, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input.js';
-import { Label } from '@/components/ui/label.js';
-import { Button } from '@/components/ui/button.js';
 
 interface FilterValues {
   dateFrom?: string;
@@ -38,8 +35,40 @@ export function FinancialFilters({
   const [dateTo, setDateTo] = React.useState('');
   const [clientId, setClientId] = React.useState('');
   const [type, setType] = React.useState('');
+  const [activeChip, setActiveChip] = React.useState<'mes' | 'anterior' | 'año' | null>(null);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const getChipDates = (chip: 'mes' | 'anterior' | 'año') => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if (chip === 'mes') {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: fmt(from), to: fmt(now) };
+    }
+    if (chip === 'anterior') {
+      const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const to = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: fmt(from), to: fmt(to) };
+    }
+    // año
+    const from = new Date(now.getFullYear(), 0, 1);
+    return { from: fmt(from), to: fmt(now) };
+  };
+
+  const handleChipClick = (chip: 'mes' | 'anterior' | 'año') => {
+    if (activeChip === chip) {
+      setActiveChip(null);
+      setDateFrom('');
+      setDateTo('');
+    } else {
+      const { from, to } = getChipDates(chip);
+      setActiveChip(chip);
+      setDateFrom(from);
+      setDateTo(to);
+    }
+  };
 
   const handleFilter = useCallback(() => {
     const filters: FilterValues = {};
@@ -79,6 +108,7 @@ export function FinancialFilters({
   }, [dateFrom, dateTo, clientId, type, handleFilter]);
 
   const handleReset = () => {
+    setActiveChip(null);
     setDateFrom('');
     setDateTo('');
     setClientId('');
@@ -87,74 +117,65 @@ export function FinancialFilters({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="dateFrom">Desde</Label>
-          <Input
-            id="dateFrom"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            placeholder="Desde"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dateTo">Hasta</Label>
-          <Input
-            id="dateTo"
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            placeholder="Hasta"
-          />
-        </div>
-
-        {filterType === 'sales' && (
-          <div className="space-y-2">
-            <Label htmlFor="clientId">Cliente ID</Label>
-            <Input
-              id="clientId"
-              type="text"
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="ID del cliente"
-            />
-          </div>
-        )}
-
-        {filterType !== 'sales' && (
-          <div className="space-y-2">
-            <Label htmlFor="type">Tipo</Label>
-            <select
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">Todos</option>
-              {(filterType === 'income' ? INCOME_TYPES : EXPENSE_TYPES).map(
-                (opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label>&nbsp;</Label>
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            className="w-full"
+    <div className="space-y-3">
+      {/* Quick-select chips */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {(
+          [
+            { key: 'mes', label: 'Este Mes' },
+            { key: 'anterior', label: 'Mes Anterior' },
+            { key: 'año', label: 'Este Año' },
+          ] as const
+        ).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => handleChipClick(key)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              activeChip === key
+                ? 'bg-primary text-white'
+                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+            }`}
           >
-            Limpiar
-          </Button>
-        </div>
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={handleReset}
+          className="px-4 py-1.5 rounded-full text-sm font-medium bg-surface-container text-secondary hover:bg-surface-container-high transition-colors"
+        >
+          Limpiar
+        </button>
+      </div>
+
+      {/* Secondary filters row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {filterType === 'sales' && (
+          <input
+            type="text"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Filtrar por cliente..."
+            className="px-3 py-2 bg-surface-container rounded-lg text-sm text-on-surface placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        )}
+        {filterType !== 'sales' && (
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="px-3 py-2 bg-surface-container rounded-lg text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="">Todos los tipos</option>
+            {(filterType === 'income' ? INCOME_TYPES : EXPENSE_TYPES).map(
+              (opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              )
+            )}
+          </select>
+        )}
       </div>
     </div>
   );

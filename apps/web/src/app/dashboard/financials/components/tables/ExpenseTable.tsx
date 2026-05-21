@@ -8,17 +8,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table.js';
-import { Button } from '@/components/ui/button.js';
-import { Badge } from '@/components/ui/badge.js';
-import { formatCurrency, formatDate } from '@/lib/formatters.js';
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface ExpenseItem {
   id: string;
-  date: string;
+  createdAt: string;
   type: string;
-  amount: number;
-  description?: string;
+  amount: string | number;
+  description?: string | null;
   status: 'ACTIVE' | 'CANCELLED' | string;
 }
 
@@ -29,14 +28,25 @@ interface ExpenseTableProps {
   onCancel?: (id: string) => void;
 }
 
+const getExpenseTypeLabel = (type: string) => {
+  switch (type) {
+    case 'PAYROLL': return 'Nómina';
+    case 'SUPPLIES': return 'Suministros';
+    case 'UTILITIES': return 'Servicios';
+    case 'MAINTENANCE': return 'Mantenimiento';
+    case 'OTHER': return 'Otro';
+    default: return type;
+  }
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'ACTIVE':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return 'bg-primary/10 text-primary';
     case 'CANCELLED':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-red-100 text-red-700';
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      return 'bg-surface-container text-secondary';
   }
 };
 
@@ -88,19 +98,16 @@ export function ExpenseTable({
       <TableBody>
         {expenses.map((expense) => (
           <TableRow key={expense.id}>
-            <TableCell>{formatDate(expense.date)}</TableCell>
-            <TableCell>{expense.type}</TableCell>
+            <TableCell>{formatDate(expense.createdAt)}</TableCell>
+            <TableCell>{getExpenseTypeLabel(expense.type)}</TableCell>
             <TableCell className="text-right font-medium">
-              {formatCurrency(expense.amount)}
+              {formatCurrency(typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount)}
             </TableCell>
             <TableCell>{expense.description || '-'}</TableCell>
             <TableCell>
-              <Badge
-                variant="outline"
-                className={`${getStatusColor(expense.status)}`}
-              >
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(expense.status)}`}>
                 {getStatusLabel(expense.status)}
-              </Badge>
+              </span>
             </TableCell>
             <TableCell className="text-right space-x-2">
               {onDetails && (

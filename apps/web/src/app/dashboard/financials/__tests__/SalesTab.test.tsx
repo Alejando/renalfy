@@ -39,17 +39,16 @@ describe('SalesTab', () => {
     }) as typeof global.fetch;
   });
 
-  it('renders tab with title and create button', () => {
+  it('renders tab with create button', () => {
     render(<SalesTab />, { wrapper: queryWrapper });
-    expect(screen.getByText('Ventas')).toBeInTheDocument();
-    expect(screen.getByText('Crear Venta')).toBeInTheDocument();
+    expect(screen.getByText('Nueva Venta')).toBeInTheDocument();
   });
 
-  it('renders filters section', () => {
+  it('renders filters section with date chips and client input', () => {
     render(<SalesTab />, { wrapper: queryWrapper });
-    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
-    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
-    expect(screen.getByLabelText('Cliente ID')).toBeInTheDocument();
+    expect(screen.getByText('Este Mes')).toBeInTheDocument();
+    expect(screen.getByText('Mes Anterior')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Filtrar por cliente...')).toBeInTheDocument();
   });
 
   it('fetches and displays sales data', async () => {
@@ -63,20 +62,17 @@ describe('SalesTab', () => {
   it('opens create modal when button is clicked', async () => {
     render(<SalesTab />, { wrapper: queryWrapper });
 
-    const createButton = screen.getByText('Crear Venta');
+    const createButton = screen.getByText('Nueva Venta');
     fireEvent.click(createButton);
 
-    // The modal should be rendered when open
     expect(createButton).toBeInTheDocument();
   });
 
-  it('filters sales when filter values change', async () => {
+  it('filters sales when chip is clicked', async () => {
     render(<SalesTab />, { wrapper: queryWrapper });
 
-    const dateFromInput = screen.getByLabelText(
-      'Desde'
-    ) as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
+    const esMesButton = screen.getByText('Este Mes');
+    fireEvent.click(esMesButton);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -100,8 +96,7 @@ describe('SalesTab', () => {
 
     render(<SalesTab />, { wrapper: queryWrapper });
 
-    // Initially should show loading or empty state
-    expect(screen.getByText('Ventas')).toBeInTheDocument();
+    expect(screen.getByText('Cargando ventas...')).toBeInTheDocument();
   });
 
   it('renders sales table with correct props', async () => {
@@ -111,7 +106,6 @@ describe('SalesTab', () => {
       expect(screen.getByText('LOC-2026-00001')).toBeInTheDocument();
     });
 
-    // Check that the table is rendered
     expect(screen.getByText('Folio')).toBeInTheDocument();
   });
 });

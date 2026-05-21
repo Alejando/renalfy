@@ -8,17 +8,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table.js';
-import { Button } from '@/components/ui/button.js';
-import { Badge } from '@/components/ui/badge.js';
-import { formatCurrency, formatDate } from '@/lib/formatters.js';
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface IncomeItem {
   id: string;
-  date: string;
+  createdAt: string;
   type: string;
-  amount: number;
-  description?: string;
+  amount: string | number;
+  description?: string | null;
   status: 'ACTIVE' | 'CANCELLED' | string;
 }
 
@@ -29,14 +28,26 @@ interface IncomeTableProps {
   onCancel?: (id: string) => void;
 }
 
+const getIncomeTypeLabel = (type: string) => {
+  switch (type) {
+    case 'SERVICE_FEE': return 'Tarifa de Servicio';
+    case 'DEPOSIT': return 'Depósito';
+    case 'TRANSFER': return 'Transferencia';
+    case 'REFUND': return 'Reembolso';
+    case 'SALES_OTHER': return 'Otras Ventas';
+    case 'OTHER': return 'Otro';
+    default: return type;
+  }
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'ACTIVE':
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return 'bg-primary/10 text-primary';
     case 'CANCELLED':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-red-100 text-red-700';
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      return 'bg-surface-container text-secondary';
   }
 };
 
@@ -88,19 +99,16 @@ export function IncomeTable({
       <TableBody>
         {incomes.map((income) => (
           <TableRow key={income.id}>
-            <TableCell>{formatDate(income.date)}</TableCell>
-            <TableCell>{income.type}</TableCell>
+            <TableCell>{formatDate(income.createdAt)}</TableCell>
+            <TableCell>{getIncomeTypeLabel(income.type)}</TableCell>
             <TableCell className="text-right font-medium">
-              {formatCurrency(income.amount)}
+              {formatCurrency(typeof income.amount === 'string' ? parseFloat(income.amount) : income.amount)}
             </TableCell>
             <TableCell>{income.description || '-'}</TableCell>
             <TableCell>
-              <Badge
-                variant="outline"
-                className={`${getStatusColor(income.status)}`}
-              >
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(income.status)}`}>
                 {getStatusLabel(income.status)}
-              </Badge>
+              </span>
             </TableCell>
             <TableCell className="text-right space-x-2">
               {onDetails && (

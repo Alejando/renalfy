@@ -173,6 +173,7 @@ describe('SalesTable', () => {
     ];
 
     render(<SalesTable sales={salesWithoutNameOrId} />);
-    expect(screen.getByText('-')).toBeInTheDocument();
+    const dashes = screen.getAllByText('-');
+    expect(dashes.length).toBeGreaterThanOrEqual(1);
   });
 });

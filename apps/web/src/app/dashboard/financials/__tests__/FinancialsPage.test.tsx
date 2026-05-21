@@ -83,11 +83,10 @@ describe('FinancialsPage', () => {
                 {
                   id: '1',
                   date: '2026-04-30',
-                  openingBalance: 1000,
-                  closingBalance: 2500,
                   salesTotal: 1000,
                   incomesTotal: 500,
                   expensesTotal: 0,
+                  calculatedTotal: 1500,
                 },
               ],
             }),
@@ -102,7 +101,7 @@ describe('FinancialsPage', () => {
 
   it('renders the main title', () => {
     render(<FinancialsPage />, { wrapper: queryWrapper });
-    expect(screen.getByText('Financials')).toBeInTheDocument();
+    expect(screen.getByText('Finanzas')).toBeInTheDocument();
   });
 
   it('renders all 4 tabs', () => {
@@ -123,7 +122,7 @@ describe('FinancialsPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Crear Venta')).toBeInTheDocument();
+      expect(screen.getByText('Nueva Venta')).toBeInTheDocument();
     });
   });
 
@@ -136,7 +135,7 @@ describe('FinancialsPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Crear Ingreso')).toBeInTheDocument();
+      expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument();
     });
   });
 
@@ -149,7 +148,7 @@ describe('FinancialsPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Crear Egreso')).toBeInTheDocument();
+      expect(screen.getByText('Nuevo Egreso')).toBeInTheDocument();
     });
   });
 
@@ -162,53 +161,45 @@ describe('FinancialsPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Crear Corte')).toBeInTheDocument();
+      expect(screen.getByText('Nuevo Corte')).toBeInTheDocument();
     });
   });
 
   it('maintains tab state when switching between tabs', async () => {
     render(<FinancialsPage />, { wrapper: queryWrapper });
 
-    // All tabs should be present
     expect(screen.getByRole('tab', { name: 'Ventas' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Ingresos' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Egresos' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Corte de Caja' })).toBeInTheDocument();
 
-    // Switch to income tab
     const incomeTab = screen.getByRole('tab', { name: 'Ingresos' });
     await act(async () => {
       fireEvent.click(incomeTab);
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Crear Ingreso')).toBeInTheDocument();
+      expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument();
     });
   });
 
   it('renders detail drawer component', () => {
     render(<FinancialsPage />, { wrapper: queryWrapper });
 
-    // The DetailDrawer component should be rendered (though not visible by default)
-    // We can verify this by checking that the page renders without errors
-    expect(screen.getByText('Financials')).toBeInTheDocument();
+    expect(screen.getByText('Finanzas')).toBeInTheDocument();
   });
 
   it('renders all tab content sections', async () => {
     render(<FinancialsPage />, { wrapper: queryWrapper });
 
-    // Check sales tab
-    expect(screen.getByText('Ventas')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Ventas' })).toBeInTheDocument();
 
-    // Check income tab exists
     const incomeTab = screen.getByRole('tab', { name: 'Ingresos' });
     expect(incomeTab).toBeInTheDocument();
 
-    // Check expense tab exists
     const expenseTab = screen.getByRole('tab', { name: 'Egresos' });
     expect(expenseTab).toBeInTheDocument();
 
-    // Check cash close tab exists
     const cashCloseTab = screen.getByRole('tab', { name: 'Corte de Caja' });
     expect(cashCloseTab).toBeInTheDocument();
   });

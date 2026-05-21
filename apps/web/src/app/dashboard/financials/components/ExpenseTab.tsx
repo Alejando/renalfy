@@ -7,6 +7,8 @@ import { useExpenses, useCancelExpense } from '../hooks/useExpenses';
 import { FinancialFilters } from './filters/FinancialFilters';
 import { ExpenseTable } from './tables/ExpenseTable';
 import { CreateExpenseModal } from './modals/CreateExpenseModal';
+import { FinancialKpiCard } from './FinancialKpiCard';
+import { formatCurrency } from '@/lib/formatters';
 
 interface ExpenseFilters {
   dateFrom?: string;
@@ -53,11 +55,30 @@ export function ExpenseTab() {
     }
   };
 
+  const today = new Date().toISOString().split('T')[0];
+  const totalAmount = expenses.reduce((sum: number, e: { amount?: string | number }) => sum + parseFloat(String(e.amount ?? 0)), 0);
+  const todayCount = expenses.filter((e: { date?: string; createdAt?: string }) => (e.date ?? e.createdAt ?? '').startsWith(today ?? '')).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Egresos</h2>
-        <Button onClick={handleCreateClick}>Crear Egreso</Button>
+      <div className="flex items-center justify-end">
+        <Button variant="gradient" onClick={handleCreateClick}>Nuevo Egreso</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FinancialKpiCard
+          label="Total del Período"
+          value={formatCurrency(totalAmount)}
+        />
+        <FinancialKpiCard
+          label="Egresos Hoy"
+          value={String(todayCount)}
+          subtext="transacciones"
+        />
+        <FinancialKpiCard
+          label="Total Registros"
+          value={String(expenses.length)}
+        />
       </div>
 
       <FinancialFilters

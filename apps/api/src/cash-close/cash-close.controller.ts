@@ -21,7 +21,7 @@ import {
 } from '../common/decorators/current-user.decorator.js';
 import { CreateCashCloseDto } from './dto/create-cash-close.dto.js';
 
-@Controller('cash-close')
+@Controller('cash-closes')
 export class CashCloseController {
   constructor(private readonly cashCloseService: CashCloseService) {}
 

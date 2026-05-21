@@ -28,7 +28,7 @@ describe('ExpenseTab', () => {
           Promise.resolve([
             {
               id: '1',
-              date: '2026-04-30',
+              createdAt: '2026-04-30T00:00:00.000Z',
               type: 'SUPPLIES',
               amount: 200,
               description: 'Office supplies',
@@ -39,43 +39,40 @@ describe('ExpenseTab', () => {
     }) as typeof global.fetch;
   });
 
-  it('renders tab with title and create button', () => {
+  it('renders tab with create button', () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
-    expect(screen.getByText('Egresos')).toBeInTheDocument();
-    expect(screen.getByText('Crear Egreso')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo Egreso')).toBeInTheDocument();
   });
 
-  it('renders filters section', () => {
+  it('renders filters section with date chips and type select', () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
-    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
-    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
-    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
+    expect(screen.getByText('Este Mes')).toBeInTheDocument();
+    expect(screen.getByText('Mes Anterior')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('fetches and displays expenses data', async () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('SUPPLIES')).toBeInTheDocument();
+      expect(screen.getByText('Suministros')).toBeInTheDocument();
     });
   });
 
   it('opens create modal when button is clicked', async () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
 
-    const createButton = screen.getByText('Crear Egreso');
+    const createButton = screen.getByText('Nuevo Egreso');
     fireEvent.click(createButton);
 
     expect(createButton).toBeInTheDocument();
   });
 
-  it('filters expenses when filter values change', async () => {
+  it('filters expenses when chip is clicked', async () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
 
-    const dateFromInput = screen.getByLabelText(
-      'Desde'
-    ) as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
+    const esMesButton = screen.getByText('Este Mes');
+    fireEvent.click(esMesButton);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -86,10 +83,10 @@ describe('ExpenseTab', () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('SUPPLIES')).toBeInTheDocument();
+      const elements = screen.getAllByText('Suministros');
+      expect(elements.length).toBeGreaterThan(0);
     });
 
-    // Check table headers exist
     const headers = screen.getAllByText('Fecha');
     expect(headers.length).toBeGreaterThan(0);
   });
@@ -97,9 +94,8 @@ describe('ExpenseTab', () => {
   it('allows filtering by expense type', async () => {
     render(<ExpenseTab />, { wrapper: queryWrapper });
 
-    const typeSelect = screen.getByLabelText(
-      'Tipo'
-    ) as HTMLSelectElement;
+    // First combobox is the FinancialFilters type select
+    const typeSelect = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
     fireEvent.change(typeSelect, { target: { value: 'UTILITIES' } });
 
     await waitFor(() => {

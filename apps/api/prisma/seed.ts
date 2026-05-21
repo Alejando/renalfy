@@ -38,10 +38,10 @@ async function main() {
 
   // Sucursal
   const location = await prisma.location.upsert({
-    where: { id: '00000000-0000-0000-0000-000000000001' },
+    where: { id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' },
     update: {},
     create: {
-      id: '00000000-0000-0000-0000-000000000001',
+      id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
       tenantId: tenant.id,
       name: 'Sucursal Centro',
       address: 'Av. López Mateos 1234, Guadalajara, Jalisco',

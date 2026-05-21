@@ -4,10 +4,10 @@ import { ExpenseTable } from '../components/tables/ExpenseTable.js';
 
 interface ExpenseItem {
   id: string;
-  date: string;
+  createdAt: string;
   type: string;
-  amount: number;
-  description?: string;
+  amount: string | number;
+  description?: string | null;
   status: 'ACTIVE' | 'CANCELLED' | string;
 }
 
@@ -15,25 +15,25 @@ describe('ExpenseTable', () => {
   const mockExpenses = [
     {
       id: '1',
-      date: '2026-04-30',
+      createdAt: '2026-04-30',
       type: 'Mantenimiento',
-      amount: 1000,
+      amount: '1000.00',
       description: 'Mantenimiento de equipos',
       status: 'ACTIVE' as const,
     },
     {
       id: '2',
-      date: '2026-04-29',
+      createdAt: '2026-04-29',
       type: 'Suministros',
-      amount: 500,
+      amount: '500.00',
       description: 'Compra de suministros',
       status: 'CANCELLED' as const,
     },
     {
       id: '3',
-      date: '2026-04-28',
+      createdAt: '2026-04-28',
       type: 'Servicios',
-      amount: 800,
+      amount: '800.00',
       description: 'Pago de servicios',
       status: 'ACTIVE' as const,
     },
@@ -143,9 +143,9 @@ describe('ExpenseTable', () => {
     const expensesWithDescription: ExpenseItem[] = [
       {
         id: '1',
-        date: '2026-04-30',
+        createdAt: '2026-04-30',
         type: 'Mantenimiento',
-        amount: 1000,
+        amount: '1000.00',
         description: 'Mantenimiento urgente de equipos',
         status: 'ACTIVE' as const,
       },
@@ -159,9 +159,9 @@ describe('ExpenseTable', () => {
     const expensesWithoutDescription: ExpenseItem[] = [
       {
         id: '1',
-        date: '2026-04-30',
+        createdAt: '2026-04-30',
         type: 'Mantenimiento',
-        amount: 1000,
+        amount: '1000.00',
         description: undefined,
         status: 'ACTIVE' as const,
       },

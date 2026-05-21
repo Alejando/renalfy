@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/receipts', label: 'Recibos' },
   { href: '/plans', label: 'Planes' },
   { href: '/inventory/products', label: 'Inventario' },
+  { href: '/financials', label: 'Finanzas' },
 ];
 
 export default async function DashboardLayout({ children }: Props) {

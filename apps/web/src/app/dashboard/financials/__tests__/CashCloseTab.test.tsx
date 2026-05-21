@@ -29,52 +29,50 @@ describe('CashCloseTab', () => {
             {
               id: '1',
               date: '2026-04-30',
-              totalSales: 5000,
-              totalIncomes: 1000,
-              totalExpenses: 800,
-              totalCash: 5200,
+              salesTotal: 5000,
+              incomesTotal: 1000,
+              expensesTotal: 800,
+              calculatedTotal: 5200,
             },
           ]),
       } as unknown as Response);
     }) as typeof global.fetch;
   });
 
-  it('renders tab with title and create button', () => {
+  it('renders tab with create button', () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
-    expect(screen.getByText('Cortes de Caja')).toBeInTheDocument();
-    expect(screen.getByText('Crear Corte')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo Corte')).toBeInTheDocument();
   });
 
-  it('renders filters section', () => {
+  it('renders filters section with date chips', () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
-    expect(screen.getByLabelText('Desde')).toBeInTheDocument();
-    expect(screen.getByLabelText('Hasta')).toBeInTheDocument();
+    expect(screen.getByText('Este Mes')).toBeInTheDocument();
+    expect(screen.getByText('Mes Anterior')).toBeInTheDocument();
+    expect(screen.getByText('Limpiar')).toBeInTheDocument();
   });
 
   it('fetches and displays cash closes data', async () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
 
     await waitFor(() => {
-      expect(screen.getByText('Cortes de Caja')).toBeInTheDocument();
+      expect(screen.getByText('Total en Caja')).toBeInTheDocument();
     });
   });
 
   it('opens create modal when button is clicked', async () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
 
-    const createButton = screen.getByText('Crear Corte');
+    const createButton = screen.getByText('Nuevo Corte');
     fireEvent.click(createButton);
 
     expect(createButton).toBeInTheDocument();
   });
 
-  it('filters cash closes when filter values change', async () => {
+  it('filters cash closes when chip is clicked', async () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
 
-    const dateFromInput = screen.getByLabelText(
-      'Desde'
-    ) as HTMLInputElement;
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
+    const esMesButton = screen.getByText('Este Mes');
+    fireEvent.click(esMesButton);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -88,7 +86,6 @@ describe('CashCloseTab', () => {
       expect(screen.getByText('Fecha')).toBeInTheDocument();
     });
 
-    // Check table headers
     expect(screen.getByText('Ventas')).toBeInTheDocument();
     expect(screen.getByText('Ingresos')).toBeInTheDocument();
     expect(screen.getByText('Egresos')).toBeInTheDocument();
@@ -109,23 +106,20 @@ describe('CashCloseTab', () => {
       expect(screen.getByText('Total en Caja')).toBeInTheDocument();
     });
 
-    // Cash closes should only have Details button, not Cancel
     const detailsButtons = screen.getAllByText('Detalles');
     expect(detailsButtons.length).toBeGreaterThan(0);
   });
 
-  it('allows filtering by date range', async () => {
+  it('allows filtering by date range using chips', async () => {
     render(<CashCloseTab />, { wrapper: queryWrapper });
 
-    const dateFromInput = screen.getByLabelText(
-      'Desde'
-    ) as HTMLInputElement;
-    const dateToInput = screen.getByLabelText(
-      'Hasta'
-    ) as HTMLInputElement;
+    fireEvent.click(screen.getByText('Este Mes'));
 
-    fireEvent.change(dateFromInput, { target: { value: '2026-04-01' } });
-    fireEvent.change(dateToInput, { target: { value: '2026-04-30' } });
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByText('Mes Anterior'));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();

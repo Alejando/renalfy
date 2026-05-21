@@ -4,15 +4,15 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button.js';
-import { Input } from '@/components/ui/input.js';
-import { Label } from '@/components/ui/label.js';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useCreateCashClose } from '../../hooks/useCashCloses.js';
 import { useSales } from '../../hooks/useSales.js';
 import { useIncomes } from '../../hooks/useIncomes.js';
 import { useExpenses } from '../../hooks/useExpenses.js';
 import { useCashCloses } from '../../hooks/useCashCloses.js';
-import { formatCurrency } from '@/lib/formatters.js';
+import { formatCurrency } from '@/lib/formatters';
 
 interface CreateCashCloseModalProps {
   open: boolean;

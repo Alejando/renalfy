@@ -4,10 +4,10 @@ import { IncomeTable } from '../components/tables/IncomeTable.js';
 
 interface IncomeItem {
   id: string;
-  date: string;
+  createdAt: string;
   type: string;
-  amount: number;
-  description?: string;
+  amount: string | number;
+  description?: string | null;
   status: 'ACTIVE' | 'CANCELLED' | string;
 }
 
@@ -15,25 +15,25 @@ describe('IncomeTable', () => {
   const mockIncomes = [
     {
       id: '1',
-      date: '2026-04-30',
+      createdAt: '2026-04-30',
       type: 'Consulta',
-      amount: 500,
+      amount: '500.00',
       description: 'Pago por consulta',
       status: 'ACTIVE' as const,
     },
     {
       id: '2',
-      date: '2026-04-29',
+      createdAt: '2026-04-29',
       type: 'Servicios',
-      amount: 1500,
+      amount: '1500.00',
       description: 'Pago por servicios',
       status: 'CANCELLED' as const,
     },
     {
       id: '3',
-      date: '2026-04-28',
+      createdAt: '2026-04-28',
       type: 'Otros',
-      amount: 300,
+      amount: '300.00',
       description: 'Ingreso diverso',
       status: 'ACTIVE' as const,
     },
@@ -143,9 +143,9 @@ describe('IncomeTable', () => {
     const incomesWithDescription: IncomeItem[] = [
       {
         id: '1',
-        date: '2026-04-30',
+        createdAt: '2026-04-30',
         type: 'Consulta',
-        amount: 500,
+        amount: '500.00',
         description: 'Pago por consulta especial',
         status: 'ACTIVE' as const,
       },
@@ -159,9 +159,9 @@ describe('IncomeTable', () => {
     const incomesWithoutDescription: IncomeItem[] = [
       {
         id: '1',
-        date: '2026-04-30',
+        createdAt: '2026-04-30',
         type: 'Consulta',
-        amount: 500,
+        amount: '500.00',
         description: undefined,
         status: 'ACTIVE' as const,
       },

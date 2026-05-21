@@ -7,6 +7,8 @@ import { useSales, useCancelSale } from '../hooks/useSales';
 import { FinancialFilters } from './filters/FinancialFilters';
 import { SalesTable } from './tables/SalesTable';
 import { CreateSaleModal } from './modals/CreateSaleModal';
+import { FinancialKpiCard } from './FinancialKpiCard';
+import { formatCurrency } from '@/lib/formatters';
 
 interface SalesFilters {
   dateFrom?: string;
@@ -53,11 +55,30 @@ export function SalesTab() {
     }
   };
 
+  const today = new Date().toISOString().split('T')[0];
+  const totalAmount = sales.reduce((sum: number, s: { total?: number }) => sum + (s.total ?? 0), 0);
+  const todayCount = sales.filter((s: { date?: string; createdAt?: string }) => (s.date ?? s.createdAt ?? '').startsWith(today ?? '')).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Ventas</h2>
-        <Button onClick={handleCreateClick}>Crear Venta</Button>
+      <div className="flex items-center justify-end">
+        <Button variant="gradient" onClick={handleCreateClick}>Nueva Venta</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FinancialKpiCard
+          label="Total del Período"
+          value={formatCurrency(totalAmount)}
+        />
+        <FinancialKpiCard
+          label="Ventas Hoy"
+          value={String(todayCount)}
+          subtext="transacciones"
+        />
+        <FinancialKpiCard
+          label="Total Registros"
+          value={String(sales.length)}
+        />
       </div>
 
       <FinancialFilters

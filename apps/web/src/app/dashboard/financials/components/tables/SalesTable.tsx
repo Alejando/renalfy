@@ -8,19 +8,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table.js';
-import { Button } from '@/components/ui/button.js';
-import { Badge } from '@/components/ui/badge.js';
-import { formatCurrency, formatDate } from '@/lib/formatters.js';
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface SalesItem {
   id: string;
   folio: string;
   clientId?: string;
   clientName?: string;
-  date: string;
-  total: number;
-  status: 'ACTIVE' | 'CANCELLED' | string;
+  date?: string;
+  createdAt?: string;
+  total?: number;
+  totalAmount?: string | number;
+  status: 'ACTIVE' | 'CANCELLED' | 'FINISHED' | 'SETTLED' | string;
+  paymentType?: 'CASH' | 'CREDIT' | 'DEBIT' | 'TRANSFER' | 'BENEFIT' | string;
+  items?: Array<{ productId: string; productName?: string; quantity: number }>;
 }
 
 interface SalesTableProps {
@@ -30,14 +33,29 @@ interface SalesTableProps {
   onCancel?: (id: string) => void;
 }
 
+const getPaymentLabel = (type?: string) => {
+  switch (type) {
+    case 'CASH': return 'Efectivo';
+    case 'CREDIT': return 'Crédito';
+    case 'DEBIT': return 'Débito';
+    case 'TRANSFER': return 'Transferencia';
+    case 'BENEFIT': return 'Beneficio';
+    default: return type ?? '-';
+  }
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'ACTIVE':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      return 'bg-primary/10 text-primary';
     case 'CANCELLED':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-red-100 text-red-700';
+    case 'FINISHED':
+      return 'bg-surface-container-high text-secondary';
+    case 'SETTLED':
+      return 'bg-surface-container-high text-secondary';
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      return 'bg-surface-container text-secondary';
   }
 };
 
@@ -47,6 +65,10 @@ const getStatusLabel = (status: string) => {
       return 'Activo';
     case 'CANCELLED':
       return 'Cancelado';
+    case 'FINISHED':
+      return 'Finalizado';
+    case 'SETTLED':
+      return 'Liquidado';
     default:
       return status;
   }
@@ -81,6 +103,8 @@ export function SalesTable({
           <TableHead>Folio</TableHead>
           <TableHead>Cliente</TableHead>
           <TableHead>Fecha</TableHead>
+          <TableHead>Pago</TableHead>
+          <TableHead>Productos</TableHead>
           <TableHead className="text-right">Total</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -91,17 +115,20 @@ export function SalesTable({
           <TableRow key={sale.id}>
             <TableCell className="font-medium">{sale.folio}</TableCell>
             <TableCell>{sale.clientName || sale.clientId || '-'}</TableCell>
-            <TableCell>{formatDate(sale.date)}</TableCell>
+            <TableCell>{formatDate(sale.date ?? sale.createdAt ?? '')}</TableCell>
+            <TableCell>{getPaymentLabel(sale.paymentType)}</TableCell>
+            <TableCell>
+              {sale.items && sale.items.length > 0
+                ? `${sale.items.length} producto(s)`
+                : '-'}
+            </TableCell>
             <TableCell className="text-right font-medium">
-              {formatCurrency(sale.total)}
+              {formatCurrency(Number(sale.totalAmount ?? sale.total ?? 0))}
             </TableCell>
             <TableCell>
-              <Badge
-                variant="outline"
-                className={`${getStatusColor(sale.status)}`}
-              >
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(sale.status)}`}>
                 {getStatusLabel(sale.status)}
-              </Badge>
+              </span>
             </TableCell>
             <TableCell className="text-right space-x-2">
               {onDetails && (

@@ -5,10 +5,10 @@ import { CashCloseTable } from '../components/tables/CashCloseTable.js';
 interface CashCloseItem {
   id: string;
   date: string;
-  totalSales: number;
-  totalIncomes: number;
-  totalExpenses: number;
-  totalCash: number;
+  salesTotal: string | number;
+  incomesTotal: string | number;
+  expensesTotal: string | number;
+  calculatedTotal: string | number;
 }
 
 describe('CashCloseTable', () => {
@@ -16,26 +16,26 @@ describe('CashCloseTable', () => {
     {
       id: '1',
       date: '2026-04-30',
-      totalSales: 5000,
-      totalIncomes: 2000,
-      totalExpenses: 1500,
-      totalCash: 5500,
+      salesTotal: '5000.00',
+      incomesTotal: '2000.00',
+      expensesTotal: '1500.00',
+      calculatedTotal: '5500.00',
     },
     {
       id: '2',
       date: '2026-04-29',
-      totalSales: 4500,
-      totalIncomes: 1800,
-      totalExpenses: 1200,
-      totalCash: 5100,
+      salesTotal: '4500.00',
+      incomesTotal: '1800.00',
+      expensesTotal: '1200.00',
+      calculatedTotal: '5100.00',
     },
     {
       id: '3',
       date: '2026-04-28',
-      totalSales: 6000,
-      totalIncomes: 2500,
-      totalExpenses: 2000,
-      totalCash: 6500,
+      salesTotal: '6000.00',
+      incomesTotal: '2500.00',
+      expensesTotal: '2000.00',
+      calculatedTotal: '6500.00',
     },
   ];
 
@@ -149,10 +149,10 @@ describe('CashCloseTable', () => {
       {
         id: '1',
         date: '2026-04-30',
-        totalSales: 0,
-        totalIncomes: 0,
-        totalExpenses: 0,
-        totalCash: 0,
+        salesTotal: '0.00',
+        incomesTotal: '0.00',
+        expensesTotal: '0.00',
+        calculatedTotal: '0.00',
       },
     ];
 

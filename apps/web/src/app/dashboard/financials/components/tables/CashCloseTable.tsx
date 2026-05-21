@@ -8,17 +8,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table.js';
-import { Button } from '@/components/ui/button.js';
-import { formatCurrency, formatDate } from '@/lib/formatters.js';
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface CashCloseItem {
   id: string;
-  date: string;
-  totalSales: number;
-  totalIncomes: number;
-  totalExpenses: number;
-  totalCash: number;
+  date: string | Date;
+  salesTotal: string | number;
+  incomesTotal: string | number;
+  expensesTotal: string | number;
+  calculatedTotal: string | number;
 }
 
 interface CashCloseTableProps {
@@ -65,16 +65,16 @@ export function CashCloseTable({
           <TableRow key={cashClose.id}>
             <TableCell>{formatDate(cashClose.date)}</TableCell>
             <TableCell className="text-right">
-              {formatCurrency(cashClose.totalSales)}
+              {formatCurrency(Number(cashClose.salesTotal ?? 0))}
             </TableCell>
             <TableCell className="text-right">
-              {formatCurrency(cashClose.totalIncomes)}
+              {formatCurrency(Number(cashClose.incomesTotal ?? 0))}
             </TableCell>
             <TableCell className="text-right">
-              {formatCurrency(cashClose.totalExpenses)}
+              {formatCurrency(Number(cashClose.expensesTotal ?? 0))}
             </TableCell>
             <TableCell className="text-right font-bold">
-              {formatCurrency(cashClose.totalCash)}
+              {formatCurrency(Number(cashClose.calculatedTotal ?? 0))}
             </TableCell>
             <TableCell className="text-right">
               {onDetails && (

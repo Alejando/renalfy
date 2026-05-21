@@ -316,6 +316,44 @@ export class SalesService {
     return buildSaleResponse(sale);
   }
 
+  async cancel(
+    tenantId: string,
+    id: string,
+    role: string,
+    locationId: string | null,
+  ): Promise<SaleResponse> {
+    if (role === 'STAFF') {
+      throw new ForbiddenException('STAFF no tiene acceso a cancelar ventas');
+    }
+
+    const sale = await this.prisma.sale.findUniqueOrThrow({ where: { id } });
+
+    if (sale.tenantId !== tenantId) {
+      throw new NotFoundException('Venta no encontrada');
+    }
+    if (role === 'MANAGER' && sale.locationId !== locationId) {
+      throw new ForbiddenException(
+        'No tiene acceso a ventas de otras sucursales',
+      );
+    }
+    if (sale.status !== 'ACTIVE') {
+      throw new BadRequestException('Solo se pueden cancelar ventas activas');
+    }
+    if (sale.isClosed) {
+      throw new BadRequestException(
+        'No se puede cancelar una venta de un período cerrado',
+      );
+    }
+
+    const updated = await this.prisma.sale.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+      include: { items: true },
+    });
+
+    return buildSaleResponse(updated);
+  }
+
   async findAll(
     tenantId: string,
     role: string,

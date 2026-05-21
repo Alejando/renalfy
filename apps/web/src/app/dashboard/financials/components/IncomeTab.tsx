@@ -7,6 +7,8 @@ import { useIncomes, useCancelIncome } from '../hooks/useIncomes';
 import { FinancialFilters } from './filters/FinancialFilters';
 import { IncomeTable } from './tables/IncomeTable';
 import { CreateIncomeModal } from './modals/CreateIncomeModal';
+import { FinancialKpiCard } from './FinancialKpiCard';
+import { formatCurrency } from '@/lib/formatters';
 
 interface IncomeFilters {
   dateFrom?: string;
@@ -53,11 +55,30 @@ export function IncomeTab() {
     }
   };
 
+  const today = new Date().toISOString().split('T')[0];
+  const totalAmount = incomes.reduce((sum: number, i: { amount?: string | number }) => sum + parseFloat(String(i.amount ?? 0)), 0);
+  const todayCount = incomes.filter((i: { date?: string; createdAt?: string }) => (i.date ?? i.createdAt ?? '').startsWith(today ?? '')).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Ingresos</h2>
-        <Button onClick={handleCreateClick}>Crear Ingreso</Button>
+      <div className="flex items-center justify-end">
+        <Button variant="gradient" onClick={handleCreateClick}>Nuevo Ingreso</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FinancialKpiCard
+          label="Total del Período"
+          value={formatCurrency(totalAmount)}
+        />
+        <FinancialKpiCard
+          label="Ingresos Hoy"
+          value={String(todayCount)}
+          subtext="transacciones"
+        />
+        <FinancialKpiCard
+          label="Total Registros"
+          value={String(incomes.length)}
+        />
       </div>
 
       <FinancialFilters

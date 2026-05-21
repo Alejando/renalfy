@@ -34,17 +34,17 @@ export function FinancialsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Financials</h1>
+        <h1 className="text-3xl font-bold">Finanzas</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => {
         setActiveTab(value as typeof activeTab);
       }}>
         <TabsList className="grid w-full max-w-md grid-cols-4">
-          <TabsTrigger value="sales">Ventas</TabsTrigger>
-          <TabsTrigger value="income">Ingresos</TabsTrigger>
-          <TabsTrigger value="expense">Egresos</TabsTrigger>
-          <TabsTrigger value="cashClose">Corte de Caja</TabsTrigger>
+          <TabsTrigger value="sales" className="data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none">Ventas</TabsTrigger>
+          <TabsTrigger value="income" className="data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none">Ingresos</TabsTrigger>
+          <TabsTrigger value="expense" className="data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none">Egresos</TabsTrigger>
+          <TabsTrigger value="cashClose" className="data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent shadow-none">Corte de Caja</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="mt-6">
