@@ -1,15 +1,24 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ZodValidationPipe } from 'nestjs-zod';
+import helmet from 'helmet';
 import * as express from 'express';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Security: trust proxy for correct client IP behind reverse proxy
+  app.set('trust proxy', 1);
 
   // Configure bodyParser limits
-  app.use(express.json({ limit: '10kb' }));
-  app.use(express.urlencoded({ limit: '10kb' }));
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ limit: '100kb' }));
+
+  // Security headers (HSTS, CSP, X-Frame-Options, etc.)
+
+  app.use(helmet());
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ZodValidationPipe());

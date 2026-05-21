@@ -10,9 +10,15 @@ export class JwtRefreshStrategy extends PassportStrategy(
   'jwt-refresh',
 ) {
   constructor(config: ConfigService) {
+    const secret = config.get<string>('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new Error(
+        'JWT_REFRESH_SECRET is not configured. This is a critical security requirement.',
+      );
+    }
     super({
       jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
-      secretOrKey: config.get<string>('JWT_REFRESH_SECRET') ?? '',
+      secretOrKey: secret,
       passReqToCallback: true,
     });
   }

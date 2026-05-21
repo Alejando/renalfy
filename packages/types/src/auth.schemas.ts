@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 export const LoginSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
 export const ChangePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Requerido'),
-    newPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    confirmPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    newPassword: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    confirmPassword: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: 'Las contraseñas no coinciden',

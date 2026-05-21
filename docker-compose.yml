@@ -7,9 +7,22 @@ services:
     restart: unless-stopped
     ports:
       - "3019:3019"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      DATABASE_MIGRATION_URL: ${DATABASE_MIGRATION_URL}
+      DATABASE_URL: ${DATABASE_URL}?sslmode=require
+      DATABASE_MIGRATION_URL: ${DATABASE_MIGRATION_URL}?sslmode=require
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}

@@ -46,6 +46,8 @@ export class SalesController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Audit({ action: 'READ', resource: 'Sale' })
   findAll(
     @CurrentUser()
@@ -82,6 +84,8 @@ export class SalesController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Audit({ action: 'READ', resource: 'Sale' })
   findOne(
     @CurrentUser()

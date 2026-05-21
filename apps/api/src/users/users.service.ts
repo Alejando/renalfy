@@ -13,7 +13,7 @@ import type {
 } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 12;
 
 const USER_SELECT = {
   id: true,

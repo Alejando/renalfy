@@ -259,17 +259,15 @@ export class SalesService {
     const year = new Date().getFullYear();
 
     // Get next sequence for this location within the year
-    const result = (await tx.$executeRaw`
+    const result = await tx.$queryRaw<Array<{ next_seq: number }>>`
       SELECT COALESCE(MAX(CAST(SUBSTRING(folio, -5) AS INTEGER)), 0) + 1 as next_seq
       FROM "Sale"
       WHERE "tenantId" = ${tenantId}
       AND "locationId" = ${locationId}
       AND "folio" LIKE ${`${locationCode}-${year}-%`}
-    `) as unknown;
+    `;
 
-    const rows = Array.isArray(result) ? result : [];
-    const row = rows[0] as { next_seq: number } | undefined;
-    const nextSeq = row?.next_seq || 1;
+    const nextSeq = result[0]?.next_seq || 1;
     const folio = `${locationCode}-${year}-${nextSeq.toString().padStart(5, '0')}`;
 
     return folio;

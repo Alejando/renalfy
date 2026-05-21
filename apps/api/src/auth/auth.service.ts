@@ -14,7 +14,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { LoginDto } from './dto/login.dto.js';
 
-const BCRYPT_ROUNDS = 10;
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class AuthService {
@@ -77,25 +77,60 @@ export class AuthService {
       userAgent: this.request.get('user-agent'),
     });
 
-    return this.generateTokens(
+    const tokens = this.generateTokens(
       user.id,
       user.tenantId,
       user.role,
       user.locationId,
     );
+
+    // Store hashed refresh token for revocation & single-use enforcement
+    const refreshTokenHash = await bcrypt.hash(
+      tokens.refreshToken,
+      BCRYPT_ROUNDS,
+    );
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshTokenHash },
+    });
+
+    return tokens;
   }
 
-  async refresh(userId: string, _refreshToken: string) {
+  async refresh(userId: string, refreshToken: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
 
-    // In a production app store the hashed refresh token in DB and validate here
-    return this.generateTokens(
+    // Validate refresh token against stored hash
+    if (!user.refreshTokenHash) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    if (!isValid) {
+      // Revoke all tokens on failed refresh attempt (possible token theft)
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { refreshTokenHash: null },
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Rotate tokens: issue new pair, store new hash
+    const tokens = this.generateTokens(
       user.id,
       user.tenantId,
       user.role,
       user.locationId,
     );
+
+    const newHash = await bcrypt.hash(tokens.refreshToken, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshTokenHash: newHash },
+    });
+
+    return tokens;
   }
 
   async me(userId: string) {
@@ -131,7 +166,18 @@ export class AuthService {
     const hashed = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hashed },
+      data: {
+        password: hashed,
+        refreshTokenHash: null, // Revoke all existing refresh tokens
+      },
+    });
+  }
+
+  async logout(userId: string) {
+    // Revoke all refresh tokens for this user
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshTokenHash: null },
     });
   }
 

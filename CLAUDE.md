@@ -55,12 +55,13 @@
 
 ### Definición de "Feature Completo"
 
-Un feature **no está terminado** hasta que se cumplan estas tres condiciones:
+Un feature **no está terminado** hasta que se cumplan estas cuatro condiciones:
 
 ```bash
 pnpm lint        # ✅ sin errores ni warnings
 pnpm check-types # ✅ sin errores de TypeScript
 pnpm test        # ✅ todos los tests en verde
+pnpm build       # ✅ compila sin errores (api + web + packages)
 ```
 
 **Backend (NestJS):**
@@ -300,6 +301,89 @@ useMutation(() => fetch(`/api/sales/${id}`, { method: 'PATCH', body: JSON.string
 // ✅ Subruta explícita
 useMutation(() => fetch(`/api/sales/${id}/cancel`, { method: 'PATCH' }));
 ```
+
+### Security Hardening Rules (ADR-014, May 2026)
+
+Estas reglas previenen vulnerabilidades encontradas en auditoría de seguridad. **Son obligatorias para cualquier deploy a producción.**
+
+#### JWT y Secrets
+
+- [ ] **JWT_SECRET no puede ser vacío ni undefined.** Las estrategias JWT lanzan error fatal en startup si falta:
+  ```typescript
+  // ❌ NUNCA usar fallback a string vacío
+  secretOrKey: config.get('JWT_SECRET') ?? ''  // bypass de auth!
+  
+  // ✅ Validar explícitamente
+  const secret = config.get('JWT_SECRET');
+  if (!secret) throw new Error('JWT_SECRET is not configured');
+  super({ secretOrKey: secret });
+  ```
+
+- [ ] **Refresh tokens deben validarse contra BD.** Almacenar `refreshTokenHash` en User, validar en cada refresh:
+  ```typescript
+  // Login: generar tokens + guardar hash
+  const hash = await bcrypt.hash(tokens.refreshToken, BCRYPT_ROUNDS);
+  await prisma.user.update({ where: { id }, data: { refreshTokenHash: hash } });
+  
+  // Refresh: validar hash + rotar par
+  if (!user.refreshTokenHash) throw new UnauthorizedException('Token revoked');
+  const valid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+  if (!valid) { /* revocar + throw */ }
+  
+  // Password change / logout: invalidar refresh tokens
+  await prisma.user.update({ where: { id }, data: { refreshTokenHash: null } });
+  ```
+
+- [ ] **bcrypt usa 12 rounds (mínimo).** `const BCRYPT_ROUNDS = 12`
+
+- [ ] **Password mínimo 8 caracteres** en todos los schemas (`LoginSchema`, `ChangePasswordSchema`, `CreateUserSchema`).
+
+#### RLS (Row-Level Security)
+
+- [ ] **RLS policies deben existir en PostgreSQL.** No depender solo de filtros `WHERE tenantId` en código:
+  - Todas las tablas con `tenantId` deben tener `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+  - Policy `FOR ALL USING ("tenantId" = app.current_tenant_id())`
+  - `AuditLog`: solo SELECT + INSERT (no UPDATE/DELETE)
+  - La migración `add_rls_policies` es el baseline; nuevas tablas con `tenantId` deben incluir RLS.
+
+- [ ] **En transacciones `$transaction`, siempre setear RLS context:**
+  ```typescript
+  await tx.$executeRaw`SELECT set_config('app.current_tenant_id', ${tenantId}, false)`;
+  ```
+
+#### Security Headers y Middleware
+
+- [ ] **Backend usa helmet + trust proxy.** `main.ts` debe tener:
+  ```typescript
+  app.use(helmet());
+  app.set('trust proxy', 1);
+  ```
+
+- [ ] **Frontend tiene security headers.** `next.config.js` debe incluir HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+
+#### Docker / Infra
+
+- [ ] **Dockerfile NO ejecuta como root.** Usar `USER` directive con usuario no-root.
+- [ ] **docker-compose tiene `cap_drop: [ALL]`, `no-new-privileges`, `read_only: true`.**
+- [ ] **DB connections usan `?sslmode=require` en producción.**
+
+#### Error Handling
+
+- [ ] **Exception filter atrapa TODAS las excepciones** (`@Catch()`, no `@Catch(HttpException)`).
+- [ ] **En producción, nunca devolver stack traces ni mensajes de error internos.**
+- [ ] **No usar `console.error` para logging en producción.** Usar `Logger` de NestJS.
+
+#### Código Muerto y Raw Queries
+
+- [ ] **No dejar rutas legacy con fetch() sin autenticación.** Verificar que `src/app/` no tenga código activo si Next.js usa `app/`.
+- [ ] **`$queryRaw` para SELECT, `$executeRaw` para INSERT/UPDATE/DELETE.** No intercambiarlos:
+  ```typescript
+  // ❌ $executeRaw para SELECT — retorna row count, no datos
+  const result = await tx.$executeRaw`SELECT ...`;
+  
+  // ✅ $queryRaw para SELECT
+  const result = await tx.$queryRaw<Array<{ col: string }>>`SELECT ...`;
+  ```
 
 ### Prisma 7 — Limitaciones Críticas
 

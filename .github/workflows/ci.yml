@@ -44,3 +44,7 @@ jobs:
 
       - name: Type check
         run: pnpm check-types
+
+      - name: Security audit (dependencies)
+        run: pnpm audit
+        continue-on-error: true

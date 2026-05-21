@@ -42,9 +42,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout() {
-    // Stateless JWT — client discards tokens
-    return;
+  logout(@CurrentUser() user: CurrentUserPayload) {
+    return this.auth.logout(user.userId);
   }
 
   @Get('me')

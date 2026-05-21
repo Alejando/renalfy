@@ -46,6 +46,8 @@ export class IncomeController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Audit({ action: 'READ', resource: 'Income' })
   findAll(
     @CurrentUser()

@@ -46,6 +46,8 @@ export class ExpenseController {
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Audit({ action: 'READ', resource: 'Expense' })
   findAll(
     @CurrentUser()

@@ -196,7 +196,7 @@ Los skills son capas de conocimiento especializadas. Se invocan con la herramien
    │  ├─ Controllers
    │  └─ Services
    ├─ Refactor (REFACTOR)
-   └─ pnpm lint + check-types + test → ✅
+    └─ pnpm lint + check-types + test + build → ✅
 
 3. qa-flow-validator
    ├─ Valida endpoints con curl/Postman
@@ -223,7 +223,7 @@ Los skills son capas de conocimiento especializadas. Se invocan con la herramien
    │  ├─ Usa Server Components donde sea posible
    │  └─ Coloca formularios en modales/drawers
    ├─ Refactor (REFACTOR)
-   └─ pnpm lint + check-types + test → ✅
+    └─ pnpm lint + check-types + test + build → ✅
 
 2. qa-flow-validator
    ├─ Ejecuta flujo UI end-to-end
@@ -246,7 +246,7 @@ Los skills son capas de conocimiento especializadas. Se invocan con la herramien
    ├─ Escribe test que reproduce el bug (RED)
    ├─ Implementa fix (GREEN)
    ├─ Refactor si es necesario (REFACTOR)
-   └─ pnpm lint + check-types + test → ✅
+    └─ pnpm lint + check-types + test + build → ✅
 
 3. qa-flow-validator
    ├─ Valida que el bug esté arreglado
@@ -444,6 +444,7 @@ Backend
 ☐ pnpm lint (backend) ✅
 ☐ pnpm check-types (backend) ✅
 ☐ pnpm test (backend) ✅
+☐ pnpm build (backend) ✅
 ☐ RLS validado (tenant aislamiento)
 ☐ AuditLog en place
 ☐ Transacciones atómicas donde aplica
@@ -455,6 +456,7 @@ Frontend
 ☐ pnpm lint (frontend) ✅
 ☐ pnpm check-types (frontend) ✅
 ☐ pnpm test (frontend) ✅
+☐ pnpm build (frontend) ✅
 ☐ RLS validado (MANAGER solo ve su locationId)
 ☐ Formularios en modales/drawers (no pages)
 ☐ Uso de React Hook Form + Zod
@@ -469,6 +471,18 @@ QA / E2E
 ☐ qa-flow-validator validó el flujo completo
 ☐ Reporte de validación sin issues críticos
 ☐ Regresiones descartadas
+
+Security (ADR-014 — obligatorio pre-producción)
+☐ JWT_SECRET y JWT_REFRESH_SECRET validados (no vacíos, no fallback a '')
+☐ Refresh tokens se validan contra BD (refreshTokenHash)
+☐ RLS policies en PostgreSQL (no solo app-level WHERE tenantId)
+☐ Helmet + security headers en API y frontend
+☐ Dockerfile con USER no-root
+☐ Exception filter atrapa todas las excepciones (@Catch())
+☐ bcrypt con 12+ rounds
+☐ Password min 8 caracteres en todos los schemas
+☐ Sin rutas legacy con fetch() sin auth
+☐ DB connections con ?sslmode=require en producción
 
 Documentación
 ☐ Spec actualizado si diverge de implementación
@@ -498,7 +512,7 @@ Documentación
 │  ├─ Implementa /api  │ ├─ Implementa pages  │
 │  ├─ Tests + TDD      │ ├─ Componentes + UI  │
 │  ├─ Migrations       │ ├─ Tests + TDD       │
-│  └─ ✅ Lint+Types+Test│ └─ ✅ Lint+Types+Test│
+│  └─ ✅ Lint+Types+Test+Build│  └─ ✅ Lint+Types+Test+Build│
 └──────────────────────┴──────────────────────┘
            ↓
 ┌─────────────────────────────────────┐
