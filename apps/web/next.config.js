@@ -40,8 +40,17 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';",
+            value: [
+              "default-src 'self'",
+              // Next.js App Router necesita 'unsafe-inline' para sus scripts de hidratación
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self' data:",
+              // Permite conectar al API en cualquier puerto local (dev) y al dominio propio (prod)
+              "connect-src 'self' http://localhost:* https://*.renalfy.app",
+              "frame-ancestors 'none'",
+            ].join('; '),
           },
         ],
       },
