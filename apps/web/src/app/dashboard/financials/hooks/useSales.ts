@@ -67,10 +67,8 @@ export const useCancelSale = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (saleId: string) => {
-      const res = await fetch(`/api/sales/${saleId}`, {
+      const res = await fetch(`/api/sales/${saleId}/cancel`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' }),
       });
       if (!res.ok) throw new Error('Failed to cancel sale');
       return res.json();

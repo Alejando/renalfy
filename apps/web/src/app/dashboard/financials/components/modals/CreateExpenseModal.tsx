@@ -4,10 +4,10 @@ import React, { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button.js';
-import { Input } from '@/components/ui/input.js';
-import { Label } from '@/components/ui/label.js';
-import { Textarea } from '@/components/ui/textarea.js';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useCreateExpense } from '../../hooks/useExpenses.js';
 
 interface CreateExpenseModalProps {
@@ -16,15 +16,16 @@ interface CreateExpenseModalProps {
 }
 
 const EXPENSE_TYPES = [
+  { value: 'PAYROLL', label: 'Nómina' },
   { value: 'SUPPLIES', label: 'Suministros' },
-  { value: 'UTILITIES', label: 'Servicios Públicos' },
-  { value: 'STAFF', label: 'Personal' },
+  { value: 'UTILITIES', label: 'Servicios' },
+  { value: 'MAINTENANCE', label: 'Mantenimiento' },
   { value: 'OTHER', label: 'Otro' },
 ] as const;
 
 const CreateExpenseFormSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-  type: z.enum(['SUPPLIES', 'UTILITIES', 'STAFF', 'OTHER'] as const),
+  type: z.enum(['PAYROLL', 'SUPPLIES', 'UTILITIES', 'MAINTENANCE', 'OTHER'] as const),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Monto debe ser un número válido')
@@ -66,7 +67,7 @@ export function CreateExpenseModal({
       createExpenseMutation.mutate(
         {
           date: data.date,
-          type: data.type as 'SUPPLIES' | 'UTILITIES' | 'STAFF' | 'OTHER',
+          type: data.type as 'PAYROLL' | 'SUPPLIES' | 'UTILITIES' | 'MAINTENANCE' | 'OTHER',
           amount: parseFloat(data.amount),
           description: data.description || '',
         },

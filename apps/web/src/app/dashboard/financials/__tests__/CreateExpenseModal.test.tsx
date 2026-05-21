@@ -63,9 +63,10 @@ describe('CreateExpenseModal', () => {
     const typeSelect = screen.getByLabelText('Tipo de Gasto') as HTMLSelectElement;
     const options = Array.from(typeSelect.options).map((opt) => opt.value);
 
+    expect(options).toContain('PAYROLL');
     expect(options).toContain('SUPPLIES');
     expect(options).toContain('UTILITIES');
-    expect(options).toContain('STAFF');
+    expect(options).toContain('MAINTENANCE');
     expect(options).toContain('OTHER');
   });
 

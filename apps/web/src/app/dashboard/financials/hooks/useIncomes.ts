@@ -62,10 +62,8 @@ export const useCancelIncome = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (incomeId: string) => {
-      const res = await fetch(`/api/incomes/${incomeId}`, {
+      const res = await fetch(`/api/incomes/${incomeId}/cancel`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' }),
       });
       if (!res.ok) throw new Error('Failed to cancel income');
       return res.json();

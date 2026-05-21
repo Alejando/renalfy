@@ -69,7 +69,7 @@ export type PaginatedIncomeResponse = z.infer<
 
 export const CreateIncomeFormSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido'),
-  type: z.enum(['SALES_OTHER', 'REFUND', 'OTHER'] as const),
+  type: IncomeTypeSchema,
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Monto debe ser un número válido')

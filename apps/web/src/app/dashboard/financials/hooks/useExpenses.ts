@@ -10,7 +10,7 @@ interface ExpenseFilters {
 
 interface CreateExpenseInput {
   date: string | Date;
-  type: 'SUPPLIES' | 'UTILITIES' | 'STAFF' | 'OTHER';
+  type: 'PAYROLL' | 'SUPPLIES' | 'UTILITIES' | 'MAINTENANCE' | 'OTHER';
   amount: number;
   description: string;
 }
@@ -62,10 +62,8 @@ export const useCancelExpense = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (expenseId: string) => {
-      const res = await fetch(`/api/expenses/${expenseId}`, {
+      const res = await fetch(`/api/expenses/${expenseId}/cancel`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' }),
       });
       if (!res.ok) throw new Error('Failed to cancel expense');
       return res.json();

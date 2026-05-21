@@ -87,7 +87,7 @@ export const CreateSaleFormSchema = z.object({
       })
     )
     .min(1, 'Debe agregar al menos un producto'),
-  paymentType: z.enum(['CASH', 'CREDIT', 'DEBIT', 'TRANSFER'] as const),
+  paymentType: PaymentTypeSchema,
   notes: z.string().max(500).optional(),
 });
 

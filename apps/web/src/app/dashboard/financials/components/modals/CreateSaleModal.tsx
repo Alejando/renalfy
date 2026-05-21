@@ -4,9 +4,9 @@ import React, { useCallback, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button.js';
-import { Input } from '@/components/ui/input.js';
-import { Label } from '@/components/ui/label.js';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useCreateSale } from '../../hooks/useSales.js';
 
 interface CreateSaleModalProps {
@@ -53,6 +53,7 @@ export function CreateSaleModal({
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateSaleFormDto>({
     resolver: zodResolver(CreateSaleFormSchema),
@@ -112,12 +113,19 @@ export function CreateSaleModal({
     }
   };
 
+  const watchedItems = watch('items');
+  const runningTotal = (watchedItems ?? []).reduce((sum, item) => {
+    const qty = Number(item?.quantity) || 0;
+    const price = parseFloat(item?.unitPrice ?? '0') || 0;
+    return sum + qty * price;
+  }, 0);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 backdrop-blur-[12px] bg-black/30 flex items-center justify-center">
+      <div className="bg-surface-container-lowest rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-surface-container-lowest px-6 pb-4 pt-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Nueva Venta</h2>
           <button
             onClick={() => onOpenChange(false)}
@@ -128,13 +136,13 @@ export function CreateSaleModal({
         </div>
 
         {successMessage && (
-          <div className="mx-6 mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          <div className="mx-6 mt-4 p-3 bg-green-100 text-green-700 rounded-lg">
             {successMessage}
           </div>
         )}
 
         {errorMessage && (
-          <div className="mx-6 mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mx-6 mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
             {errorMessage}
           </div>
         )}
@@ -167,7 +175,7 @@ export function CreateSaleModal({
             <select
               id="paymentType"
               {...register('paymentType')}
-              className="w-full mt-2 px-3 py-2 border rounded-md"
+              className="w-full mt-2 px-3 py-2 bg-surface-container rounded-lg text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {PAYMENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -185,91 +193,58 @@ export function CreateSaleModal({
           {/* Products Array */}
           <div>
             <Label className="text-sm font-medium">Productos</Label>
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-2">
+              {/* Products table header */}
+              <div className="grid grid-cols-[1fr_80px_100px_40px] gap-2 px-2">
+                <p className="text-xs font-medium text-secondary">Producto (ID)</p>
+                <p className="text-xs font-medium text-secondary">Cantidad</p>
+                <p className="text-xs font-medium text-secondary">Precio Unit.</p>
+                <span />
+              </div>
+
               {fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="border rounded-lg p-4 space-y-3 bg-gray-50"
-                >
-                  {/* Product Select */}
+                <div key={field.id} className="grid grid-cols-[1fr_80px_100px_40px] gap-2 items-start bg-surface-container rounded-xl p-2">
                   <div>
-                    <Label
-                      htmlFor={`items.${index}.productId`}
-                      className="text-xs font-medium"
-                    >
-                      Producto
-                    </Label>
                     <Input
-                      id={`items.${index}.productId`}
                       type="text"
                       placeholder="ID del producto"
                       {...register(`items.${index}.productId`)}
-                      className="mt-1"
+                      className="h-8 text-sm"
                     />
                     {errors.items?.[index]?.productId && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.items[index]?.productId?.message}
-                      </p>
+                      <p className="text-red-600 text-xs mt-0.5">{errors.items[index]?.productId?.message}</p>
                     )}
                   </div>
-
-                  {/* Quantity */}
                   <div>
-                    <Label
-                      htmlFor={`items.${index}.quantity`}
-                      className="text-xs font-medium"
-                    >
-                      Cantidad
-                    </Label>
                     <Input
-                      id={`items.${index}.quantity`}
                       type="number"
                       placeholder="0"
-                      {...register(`items.${index}.quantity`, {
-                        valueAsNumber: true,
-                      })}
-                      className="mt-1"
+                      {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                      className="h-8 text-sm"
                     />
                     {errors.items?.[index]?.quantity && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.items[index]?.quantity?.message}
-                      </p>
+                      <p className="text-red-600 text-xs mt-0.5">{errors.items[index]?.quantity?.message}</p>
                     )}
                   </div>
-
-                  {/* Unit Price */}
                   <div>
-                    <Label
-                      htmlFor={`items.${index}.unitPrice`}
-                      className="text-xs font-medium"
-                    >
-                      Precio unitario
-                    </Label>
                     <Input
-                      id={`items.${index}.unitPrice`}
                       type="text"
                       placeholder="0.00"
                       {...register(`items.${index}.unitPrice`)}
-                      className="mt-1"
+                      className="h-8 text-sm"
                     />
                     {errors.items?.[index]?.unitPrice && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.items[index]?.unitPrice?.message}
-                      </p>
+                      <p className="text-red-600 text-xs mt-0.5">{errors.items[index]?.unitPrice?.message}</p>
                     )}
                   </div>
-
-                  {/* Remove Button */}
-                  {fields.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemoveProduct(index)}
-                    >
-                      Quitar
-                    </Button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProduct(index)}
+                    disabled={fields.length === 1}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-secondary hover:text-red-600 hover:bg-red-50 disabled:opacity-0 transition-colors"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
 
@@ -277,6 +252,15 @@ export function CreateSaleModal({
                 <p className="text-red-500 text-sm">
                   {errors.items.message}
                 </p>
+              )}
+
+              {runningTotal > 0 && (
+                <div className="flex items-center justify-end mt-3 px-2">
+                  <p className="text-sm text-secondary mr-2">Subtotal:</p>
+                  <p className="text-lg font-bold text-on-surface font-headline">
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(runningTotal)}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -311,7 +295,7 @@ export function CreateSaleModal({
           </div>
 
           {/* Form Actions */}
-          <div className="flex gap-3 justify-end border-t pt-6">
+          <div className="flex gap-3 justify-end pt-6">
             <Button
               type="button"
               variant="outline"
