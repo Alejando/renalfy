@@ -1,5 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async rewrites() {
+    return {
+      beforeFiles: [
+        // Producción: {slug}.renalfy.app → /tenants/{slug}/...
+        {
+          source: '/:path*',
+          has: [{ type: 'host', value: '(?<slug>(?!www$|api$)[^.]+)\\.renalfy\\.app' }],
+          destination: '/tenants/:slug/:path*',
+        },
+        // Desarrollo: {slug}.localhost:{port} → /tenants/{slug}/...
+        {
+          source: '/:path*',
+          has: [{ type: 'host', value: '(?<slug>(?!www$|api$)[^.]+)\\.localhost(?::\\d+)?' }],
+          destination: '/tenants/:slug/:path*',
+        },
+      ],
+    };
+  },
+
   async headers() {
     return [
       {
