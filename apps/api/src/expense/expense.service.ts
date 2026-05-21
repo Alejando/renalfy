@@ -54,6 +54,14 @@ export class ExpenseService {
       throw new ForbiddenException('STAFF cannot create expense records');
     }
 
+    // Validate locationId belongs to tenant (change 1C)
+    const location = await this.prisma.location.findUnique({
+      where: { id: dto.locationId },
+    });
+    if (!location || location.tenantId !== tenantId) {
+      throw new NotFoundException('Sucursal no encontrada en su tenant');
+    }
+
     // Check if period is closed
     const now = new Date();
     const dateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -90,7 +98,12 @@ export class ExpenseService {
     return buildExpenseResponse(expense);
   }
 
-  async cancel(tenantId: string, id: string): Promise<ExpenseResponse> {
+  async cancel(
+    tenantId: string,
+    id: string,
+    role: UserRole,
+    userLocationId: string | null,
+  ): Promise<ExpenseResponse> {
     const expense = await this.prisma.expense.findUnique({
       where: { id },
     });
@@ -103,8 +116,20 @@ export class ExpenseService {
       throw new ForbiddenException('Cannot access expense from another tenant');
     }
 
+    // MANAGER only cancels their own location's records (change 1B)
+    if (role === 'MANAGER' && expense.locationId !== userLocationId) {
+      throw new ForbiddenException('No tienes acceso a este gasto');
+    }
+
     if (expense.status === 'CANCELLED') {
       throw new BadRequestException('Expense record is already cancelled');
+    }
+
+    // Check if period is closed (change 1D)
+    if (expense.isClosed) {
+      throw new BadRequestException(
+        'No se puede cancelar un registro de período cerrado',
+      );
     }
 
     const updatedExpense = await this.prisma.expense.update({
@@ -120,12 +145,18 @@ export class ExpenseService {
 
   async findAll(
     tenantId: string,
+    role: UserRole,
+    userLocationId: string | null,
     query: ExpenseQuery,
   ): Promise<PaginatedExpenseResponse> {
     const { page = 1, limit = 50, type, status, dateFrom, dateTo } = query;
 
     const where: Prisma.ExpenseWhereInput = {
       tenantId,
+      // MANAGER only sees their own location's records (change 1B)
+      ...(role === 'MANAGER'
+        ? { locationId: userLocationId ?? undefined }
+        : {}),
       ...(type ? { type } : {}),
       ...(status ? { status } : {}),
       ...(dateFrom || dateTo

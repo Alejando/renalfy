@@ -9,8 +9,11 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import type { UserRole } from '@repo/types';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 import { ProductsService } from './products.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
@@ -24,10 +27,12 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 const OWNERS_ADMINS: UserRole[] = ['OWNER', 'ADMIN'];
 
 @Controller('products')
+@UseGuards(JwtAuthGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
   @Roles(...OWNERS_ADMINS)
   @HttpCode(HttpStatus.CREATED)
   create(
@@ -67,6 +72,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
   @Roles(...OWNERS_ADMINS)
   update(
     @Param('id') id: string,
@@ -82,6 +88,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
   @Roles(...OWNERS_ADMINS)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {

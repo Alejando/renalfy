@@ -23,6 +23,13 @@ const LOCATION_ID = 'location-uuid-1';
 const USER_ID = 'user-uuid-1';
 const INCOME_ID = 'income-uuid-1';
 
+const mockLocation = {
+  id: LOCATION_ID,
+  tenantId: TENANT_ID,
+  code: 'LOC',
+  name: 'Sucursal Test',
+};
+
 const mockIncome = {
   id: INCOME_ID,
   tenantId: TENANT_ID,
@@ -77,6 +84,9 @@ describe('IncomeService', () => {
       cashClose: {
         findFirst: jest.fn(),
       },
+      location: {
+        findUnique: jest.fn(),
+      },
     };
 
     service = new IncomeService(prismaMock as PrismaService);
@@ -91,6 +101,7 @@ describe('IncomeService', () => {
         description: 'Test income',
       };
 
+      prismaMock.location.findUnique.mockResolvedValue(mockLocation);
       prismaMock.cashClose.findFirst.mockResolvedValue(null);
       prismaMock.income.create.mockResolvedValue(mockIncome);
 
@@ -131,6 +142,7 @@ describe('IncomeService', () => {
         amount: '500.00',
       };
 
+      prismaMock.location.findUnique.mockResolvedValue(mockLocation);
       prismaMock.cashClose.findFirst.mockResolvedValue(null);
       prismaMock.income.create.mockResolvedValue(mockIncome);
 
@@ -138,6 +150,39 @@ describe('IncomeService', () => {
 
       expect(result).toBeDefined();
       expect(prismaMock.income.create).toHaveBeenCalled();
+    });
+
+    it('should validate locationId belongs to tenant (change 1C)', async () => {
+      const dto: CreateIncomeDto = {
+        locationId: 'location-other-tenant',
+        type: 'SERVICE_FEE',
+        amount: '500.00',
+      };
+
+      prismaMock.location.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.create(TENANT_ID, USER_ID, dto, 'MANAGER'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw when locationId belongs to different tenant (change 1C)', async () => {
+      const dto: CreateIncomeDto = {
+        locationId: 'location-other-tenant',
+        type: 'SERVICE_FEE',
+        amount: '500.00',
+      };
+
+      const otherTenantLocation = {
+        id: 'location-other-tenant',
+        tenantId: 'other-tenant-id',
+      };
+
+      prismaMock.location.findUnique.mockResolvedValue(otherTenantLocation);
+
+      await expect(
+        service.create(TENANT_ID, USER_ID, dto, 'MANAGER'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -152,7 +197,7 @@ describe('IncomeService', () => {
       prismaMock.income.findUnique.mockResolvedValue(mockIncome);
       prismaMock.income.update.mockResolvedValue(cancelledIncome);
 
-      const result = await service.cancel(TENANT_ID, INCOME_ID);
+      const result = await service.cancel(TENANT_ID, INCOME_ID, 'ADMIN', null);
 
       expect(result.status).toBe('CANCELLED');
       expect(result.cancelledAt).toBeDefined();
@@ -168,9 +213,9 @@ describe('IncomeService', () => {
     it('should throw if income not found', async () => {
       prismaMock.income.findUnique.mockResolvedValue(null);
 
-      await expect(service.cancel(TENANT_ID, INCOME_ID)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.cancel(TENANT_ID, INCOME_ID, 'ADMIN', null),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw if income already cancelled', async () => {
@@ -181,9 +226,51 @@ describe('IncomeService', () => {
 
       prismaMock.income.findUnique.mockResolvedValue(cancelledIncome);
 
-      await expect(service.cancel(TENANT_ID, INCOME_ID)).rejects.toThrow(
-        BadRequestException,
+      await expect(
+        service.cancel(TENANT_ID, INCOME_ID, 'ADMIN', null),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if isClosed=true (change 1D)', async () => {
+      const closedIncome = deepMerge(mockIncome, { isClosed: true });
+
+      prismaMock.income.findUnique.mockResolvedValue(closedIncome);
+
+      await expect(
+        service.cancel(TENANT_ID, INCOME_ID, 'ADMIN', null),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ForbiddenException if MANAGER tries to cancel income from different location (change 1B)', async () => {
+      const otherLocationIncome = deepMerge(mockIncome, {
+        locationId: 'other-location-id',
+      });
+
+      prismaMock.income.findUnique.mockResolvedValue(otherLocationIncome);
+
+      await expect(
+        service.cancel(TENANT_ID, INCOME_ID, 'MANAGER', LOCATION_ID),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow MANAGER to cancel income from their own location (change 1B)', async () => {
+      const now = new Date();
+      const cancelledIncome = deepMerge(mockIncome, {
+        status: 'CANCELLED',
+        cancelledAt: now,
+      });
+
+      prismaMock.income.findUnique.mockResolvedValue(mockIncome);
+      prismaMock.income.update.mockResolvedValue(cancelledIncome);
+
+      const result = await service.cancel(
+        TENANT_ID,
+        INCOME_ID,
+        'MANAGER',
+        LOCATION_ID,
       );
+
+      expect(result.status).toBe('CANCELLED');
     });
   });
 
@@ -201,7 +288,7 @@ describe('IncomeService', () => {
       prismaMock.income.findMany.mockResolvedValue(mockIncomeList);
       prismaMock.income.count.mockResolvedValue(1);
 
-      const result = await service.findAll(TENANT_ID, query);
+      const result = await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(result.data).toEqual(mockIncomeList);
       expect(result.total).toBe(1);
@@ -220,7 +307,7 @@ describe('IncomeService', () => {
       prismaMock.income.findMany.mockResolvedValue([mockIncome]);
       prismaMock.income.count.mockResolvedValue(1);
 
-      const result = await service.findAll(TENANT_ID, query);
+      const result = await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.income.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -242,7 +329,7 @@ describe('IncomeService', () => {
       prismaMock.income.findMany.mockResolvedValue([]);
       prismaMock.income.count.mockResolvedValue(0);
 
-      await service.findAll(TENANT_ID, query);
+      await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.income.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -262,12 +349,53 @@ describe('IncomeService', () => {
       prismaMock.income.findMany.mockResolvedValue([]);
       prismaMock.income.count.mockResolvedValue(100);
 
-      await service.findAll(TENANT_ID, query);
+      await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.income.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 25,
           take: 25,
+        }),
+      );
+    });
+
+    it('should filter by locationId when role=MANAGER (change 1B)', async () => {
+      const query: IncomeQuery = {
+        page: 1,
+        limit: 50,
+      };
+
+      prismaMock.income.findMany.mockResolvedValue([mockIncome]);
+      prismaMock.income.count.mockResolvedValue(1);
+
+      await service.findAll(TENANT_ID, 'MANAGER', LOCATION_ID, query);
+
+      expect(prismaMock.income.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: TENANT_ID,
+            locationId: LOCATION_ID,
+          }),
+        }),
+      );
+    });
+
+    it('should NOT filter by locationId when role=ADMIN (change 1B)', async () => {
+      const query: IncomeQuery = {
+        page: 1,
+        limit: 50,
+      };
+
+      prismaMock.income.findMany.mockResolvedValue([mockIncome]);
+      prismaMock.income.count.mockResolvedValue(1);
+
+      await service.findAll(TENANT_ID, 'ADMIN', LOCATION_ID, query);
+
+      expect(prismaMock.income.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({
+            locationId: expect.anything(),
+          }),
         }),
       );
     });

@@ -54,6 +54,14 @@ export class IncomeService {
       throw new ForbiddenException('STAFF cannot create income records');
     }
 
+    // Validate locationId belongs to tenant (change 1C)
+    const location = await this.prisma.location.findUnique({
+      where: { id: dto.locationId },
+    });
+    if (!location || location.tenantId !== tenantId) {
+      throw new NotFoundException('Sucursal no encontrada en su tenant');
+    }
+
     // Check if period is closed
     const now = new Date();
     const dateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -90,7 +98,12 @@ export class IncomeService {
     return buildIncomeResponse(income);
   }
 
-  async cancel(tenantId: string, id: string): Promise<IncomeResponse> {
+  async cancel(
+    tenantId: string,
+    id: string,
+    role: UserRole,
+    userLocationId: string | null,
+  ): Promise<IncomeResponse> {
     const income = await this.prisma.income.findUnique({
       where: { id },
     });
@@ -103,8 +116,20 @@ export class IncomeService {
       throw new ForbiddenException('Cannot access income from another tenant');
     }
 
+    // MANAGER only cancels their own location's records (change 1B)
+    if (role === 'MANAGER' && income.locationId !== userLocationId) {
+      throw new ForbiddenException('No tienes acceso a este ingreso');
+    }
+
     if (income.status === 'CANCELLED') {
       throw new BadRequestException('Income record is already cancelled');
+    }
+
+    // Check if period is closed (change 1D)
+    if (income.isClosed) {
+      throw new BadRequestException(
+        'No se puede cancelar un registro de período cerrado',
+      );
     }
 
     const updatedIncome = await this.prisma.income.update({
@@ -120,12 +145,18 @@ export class IncomeService {
 
   async findAll(
     tenantId: string,
+    role: UserRole,
+    userLocationId: string | null,
     query: IncomeQuery,
   ): Promise<PaginatedIncomeResponse> {
     const { page = 1, limit = 50, type, status, dateFrom, dateTo } = query;
 
     const where: Prisma.IncomeWhereInput = {
       tenantId,
+      // MANAGER only sees their own location's records (change 1B)
+      ...(role === 'MANAGER'
+        ? { locationId: userLocationId ?? undefined }
+        : {}),
       ...(type ? { type } : {}),
       ...(status ? { status } : {}),
       ...(dateFrom || dateTo

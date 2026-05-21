@@ -18,7 +18,7 @@ import { CreateIncomeDto } from './dto/create-income.dto.js';
 import { IncomeQueryDto } from './dto/income-query.dto.js';
 import type { UserRole } from '@repo/types';
 
-@Controller('income')
+@Controller('incomes')
 @UseGuards(JwtAuthGuard)
 export class IncomeController {
   constructor(private readonly incomeService: IncomeService) {}
@@ -48,17 +48,32 @@ export class IncomeController {
   @Get()
   @Audit({ action: 'READ', resource: 'Income' })
   findAll(
-    @CurrentUser() user: { tenantId: string; role: UserRole },
+    @CurrentUser()
+    user: { tenantId: string; role: UserRole; locationId: string | null },
     @Query() query: IncomeQueryDto,
   ) {
-    return this.incomeService.findAll(user.tenantId, query);
+    return this.incomeService.findAll(
+      user.tenantId,
+      user.role,
+      user.locationId,
+      query,
+    );
   }
 
   @Patch(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'ADMIN', 'MANAGER')
   @Audit({ action: 'DELETE', resource: 'Income' })
-  cancel(@CurrentUser() user: { tenantId: string }, @Param('id') id: string) {
-    return this.incomeService.cancel(user.tenantId, id);
+  cancel(
+    @CurrentUser()
+    user: { tenantId: string; role: UserRole; locationId: string | null },
+    @Param('id') id: string,
+  ) {
+    return this.incomeService.cancel(
+      user.tenantId,
+      id,
+      user.role,
+      user.locationId,
+    );
   }
 }

@@ -1,10 +1,12 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { SuppliersService } from './suppliers.service.js';
 import { SupplierQueryDto } from './dto/supplier-query.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { UserRole } from '@repo/types';
 
 @Controller('suppliers')
+@UseGuards(JwtAuthGuard)
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 

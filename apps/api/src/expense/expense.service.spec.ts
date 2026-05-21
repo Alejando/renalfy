@@ -23,6 +23,13 @@ const LOCATION_ID = 'location-uuid-1';
 const USER_ID = 'user-uuid-1';
 const EXPENSE_ID = 'expense-uuid-1';
 
+const mockLocation = {
+  id: LOCATION_ID,
+  tenantId: TENANT_ID,
+  code: 'LOC',
+  name: 'Sucursal Test',
+};
+
 const mockExpense = {
   id: EXPENSE_ID,
   tenantId: TENANT_ID,
@@ -77,6 +84,9 @@ describe('ExpenseService', () => {
       cashClose: {
         findFirst: jest.fn(),
       },
+      location: {
+        findUnique: jest.fn(),
+      },
     };
 
     service = new ExpenseService(prismaMock as PrismaService);
@@ -91,6 +101,7 @@ describe('ExpenseService', () => {
         description: 'Test expense',
       };
 
+      prismaMock.location.findUnique.mockResolvedValue(mockLocation);
       prismaMock.cashClose.findFirst.mockResolvedValue(null);
       prismaMock.expense.create.mockResolvedValue(mockExpense);
 
@@ -131,6 +142,7 @@ describe('ExpenseService', () => {
         amount: '250.00',
       };
 
+      prismaMock.location.findUnique.mockResolvedValue(mockLocation);
       prismaMock.cashClose.findFirst.mockResolvedValue(null);
       prismaMock.expense.create.mockResolvedValue(mockExpense);
 
@@ -138,6 +150,39 @@ describe('ExpenseService', () => {
 
       expect(result).toBeDefined();
       expect(prismaMock.expense.create).toHaveBeenCalled();
+    });
+
+    it('should validate locationId belongs to tenant (change 1C)', async () => {
+      const dto: CreateExpenseDto = {
+        locationId: 'location-other-tenant',
+        type: 'SUPPLIES',
+        amount: '250.00',
+      };
+
+      prismaMock.location.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.create(TENANT_ID, USER_ID, dto, 'MANAGER'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw when locationId belongs to different tenant (change 1C)', async () => {
+      const dto: CreateExpenseDto = {
+        locationId: 'location-other-tenant',
+        type: 'SUPPLIES',
+        amount: '250.00',
+      };
+
+      const otherTenantLocation = {
+        id: 'location-other-tenant',
+        tenantId: 'other-tenant-id',
+      };
+
+      prismaMock.location.findUnique.mockResolvedValue(otherTenantLocation);
+
+      await expect(
+        service.create(TENANT_ID, USER_ID, dto, 'MANAGER'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -152,7 +197,7 @@ describe('ExpenseService', () => {
       prismaMock.expense.findUnique.mockResolvedValue(mockExpense);
       prismaMock.expense.update.mockResolvedValue(cancelledExpense);
 
-      const result = await service.cancel(TENANT_ID, EXPENSE_ID);
+      const result = await service.cancel(TENANT_ID, EXPENSE_ID, 'ADMIN', null);
 
       expect(result.status).toBe('CANCELLED');
       expect(result.cancelledAt).toBeDefined();
@@ -168,9 +213,9 @@ describe('ExpenseService', () => {
     it('should throw if expense not found', async () => {
       prismaMock.expense.findUnique.mockResolvedValue(null);
 
-      await expect(service.cancel(TENANT_ID, EXPENSE_ID)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.cancel(TENANT_ID, EXPENSE_ID, 'ADMIN', null),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw if expense already cancelled', async () => {
@@ -181,9 +226,51 @@ describe('ExpenseService', () => {
 
       prismaMock.expense.findUnique.mockResolvedValue(cancelledExpense);
 
-      await expect(service.cancel(TENANT_ID, EXPENSE_ID)).rejects.toThrow(
-        BadRequestException,
+      await expect(
+        service.cancel(TENANT_ID, EXPENSE_ID, 'ADMIN', null),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if isClosed=true (change 1D)', async () => {
+      const closedExpense = deepMerge(mockExpense, { isClosed: true });
+
+      prismaMock.expense.findUnique.mockResolvedValue(closedExpense);
+
+      await expect(
+        service.cancel(TENANT_ID, EXPENSE_ID, 'ADMIN', null),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ForbiddenException if MANAGER tries to cancel expense from different location (change 1B)', async () => {
+      const otherLocationExpense = deepMerge(mockExpense, {
+        locationId: 'other-location-id',
+      });
+
+      prismaMock.expense.findUnique.mockResolvedValue(otherLocationExpense);
+
+      await expect(
+        service.cancel(TENANT_ID, EXPENSE_ID, 'MANAGER', LOCATION_ID),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow MANAGER to cancel expense from their own location (change 1B)', async () => {
+      const now = new Date();
+      const cancelledExpense = deepMerge(mockExpense, {
+        status: 'CANCELLED',
+        cancelledAt: now,
+      });
+
+      prismaMock.expense.findUnique.mockResolvedValue(mockExpense);
+      prismaMock.expense.update.mockResolvedValue(cancelledExpense);
+
+      const result = await service.cancel(
+        TENANT_ID,
+        EXPENSE_ID,
+        'MANAGER',
+        LOCATION_ID,
       );
+
+      expect(result.status).toBe('CANCELLED');
     });
   });
 
@@ -201,7 +288,7 @@ describe('ExpenseService', () => {
       prismaMock.expense.findMany.mockResolvedValue(mockExpenseList);
       prismaMock.expense.count.mockResolvedValue(1);
 
-      const result = await service.findAll(TENANT_ID, query);
+      const result = await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(result.data).toEqual(mockExpenseList);
       expect(result.total).toBe(1);
@@ -220,7 +307,7 @@ describe('ExpenseService', () => {
       prismaMock.expense.findMany.mockResolvedValue([mockExpense]);
       prismaMock.expense.count.mockResolvedValue(1);
 
-      const result = await service.findAll(TENANT_ID, query);
+      const result = await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -242,7 +329,7 @@ describe('ExpenseService', () => {
       prismaMock.expense.findMany.mockResolvedValue([]);
       prismaMock.expense.count.mockResolvedValue(0);
 
-      await service.findAll(TENANT_ID, query);
+      await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -262,12 +349,53 @@ describe('ExpenseService', () => {
       prismaMock.expense.findMany.mockResolvedValue([]);
       prismaMock.expense.count.mockResolvedValue(100);
 
-      await service.findAll(TENANT_ID, query);
+      await service.findAll(TENANT_ID, 'ADMIN', null, query);
 
       expect(prismaMock.expense.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 25,
           take: 25,
+        }),
+      );
+    });
+
+    it('should filter by locationId when role=MANAGER (change 1B)', async () => {
+      const query: ExpenseQuery = {
+        page: 1,
+        limit: 50,
+      };
+
+      prismaMock.expense.findMany.mockResolvedValue([mockExpense]);
+      prismaMock.expense.count.mockResolvedValue(1);
+
+      await service.findAll(TENANT_ID, 'MANAGER', LOCATION_ID, query);
+
+      expect(prismaMock.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: TENANT_ID,
+            locationId: LOCATION_ID,
+          }),
+        }),
+      );
+    });
+
+    it('should NOT filter by locationId when role=ADMIN (change 1B)', async () => {
+      const query: ExpenseQuery = {
+        page: 1,
+        limit: 50,
+      };
+
+      prismaMock.expense.findMany.mockResolvedValue([mockExpense]);
+      prismaMock.expense.count.mockResolvedValue(1);
+
+      await service.findAll(TENANT_ID, 'ADMIN', LOCATION_ID, query);
+
+      expect(prismaMock.expense.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({
+            locationId: expect.anything(),
+          }),
         }),
       );
     });
