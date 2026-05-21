@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { EmptyState } from '@/app/components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { SupplierDrawer } from './supplier-drawer';
 import { deleteSupplierAction } from '@/app/actions/suppliers';
 

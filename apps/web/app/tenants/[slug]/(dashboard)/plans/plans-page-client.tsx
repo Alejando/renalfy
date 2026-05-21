@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { PlanStatusBadge } from './plan-status-badge';
 import { PlanProgressBar } from './plan-progress-bar';
 import { PlanDrawer } from './plan-drawer';

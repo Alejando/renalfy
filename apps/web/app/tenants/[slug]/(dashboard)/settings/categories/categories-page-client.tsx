@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { EmptyState } from '../../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { createCategoryAction, deleteCategoryAction } from '../../../../../actions/product-categories';
 
 interface CategoryOption {

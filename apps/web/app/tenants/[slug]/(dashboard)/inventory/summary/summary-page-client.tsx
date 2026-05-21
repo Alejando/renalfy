@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '../../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 
 interface SummaryPageClientProps {
   summary: PaginatedStockSummaryResponse;

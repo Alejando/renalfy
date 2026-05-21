@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import type { ServiceTypeResponse } from '@repo/types';
 import { ServiceTypeDrawer } from './service-type-drawer';
 import { toggleServiceTypeStatusAction } from '../../../../../actions/service-types';
-import { EmptyState } from '../../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import {
   Table,
   TableBody,

@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/app/components/empty-state';
+import { EmptyState } from '@repo/ui';
 
 interface PurchasesPageClientProps {
   purchases: PaginatedPurchasesResponse;

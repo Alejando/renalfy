@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '../../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { AdjustQuantityDrawer } from './adjust-quantity-drawer';
 
 interface StockPageClientProps {

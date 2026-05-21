@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { EmptyState } from '@/app/components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { MovementTypeBadge } from './movement-type-badge';
 
 export function MovementsPageClient({

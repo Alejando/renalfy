@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { ReceiptStatusBadge } from './receipt-status-badge';
 import { ReceiptPaymentTypeBadge } from './receipt-payment-type-badge';
 import { ReceiptCreateDrawer } from './receipt-create-drawer';

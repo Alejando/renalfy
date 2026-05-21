@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useForm, type FieldErrors, type Resolver } from 'react-hook-form';
+import { useForm, useController, type FieldErrors, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
 import { CreatePatientSchema, UpdatePatientSchema } from '@repo/types';
@@ -13,11 +13,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  Input, Label, Textarea, Button,
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from '@repo/ui';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 import {
   createPatientAction,
   updatePatientAction,
@@ -45,10 +45,7 @@ const CONSENT_TYPE_LABELS: Record<string, string> = {
 const REQUIRES_LOCATION_SELECTOR: UserRole[] = ['OWNER', 'ADMIN'];
 
 const LABEL_CLASS =
-  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
-
-const SELECT_CLASS =
-  'w-full bg-input border border-border rounded-md px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 transition-all appearance-none';
+  'block text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold';
 
 interface CreatePatientFormProps {
   onClose: () => void;
@@ -71,6 +68,7 @@ function CreatePatientForm({
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateFormValues>({
     resolver: zodResolver(CreatePatientSchema) as Resolver<CreateFormValues>,
@@ -84,6 +82,9 @@ function CreatePatientForm({
       consent: { type: undefined, version: '1.0' },
     },
   });
+
+  const locationField = useController({ control, name: 'locationId' });
+  const consentTypeField = useController({ control, name: 'consent.type' });
 
   const onInvalid = (fieldErrors: FieldErrors<CreateFormValues>) => {
     for (const [field, error] of Object.entries(fieldErrors)) {
@@ -133,7 +134,7 @@ function CreatePatientForm({
     <>
       {errors.root && (
         <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
-          <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
+          <p className="text-rf-danger text-sm font-medium">{errors.root.message}</p>
         </div>
       )}
       <form
@@ -153,7 +154,7 @@ function CreatePatientForm({
             {...register('name')}
           />
           {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
+            <p className="text-sm text-rf-danger">{errors.name.message}</p>
           )}
         </div>
 
@@ -161,24 +162,25 @@ function CreatePatientForm({
         {showLocationSelector ? (
           <div className="space-y-2">
             <Label htmlFor="patient-location" className={LABEL_CLASS}>
-              Sucursal <span className="text-destructive">*</span>
+              Sucursal <span className="text-rf-danger">*</span>
             </Label>
-            <select
-              id="patient-location"
-              className={SELECT_CLASS}
-              {...register('locationId')}
+            <Select
+              value={locationField.field.value}
+              onValueChange={locationField.field.onChange}
             >
-              <option value="" disabled>
-                Selecciona una sucursal
-              </option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="patient-location">
+                <SelectValue placeholder="Selecciona una sucursal" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.locationId && (
-              <p className="text-sm text-destructive">{errors.locationId.message}</p>
+              <p className="text-sm text-rf-danger">{errors.locationId.message}</p>
             )}
           </div>
         ) : (
@@ -250,31 +252,31 @@ function CreatePatientForm({
         {/* Consent section */}
         <div className="space-y-4 pt-2">
           <Separator />
-          <p className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold pt-2">
+          <p className="text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold pt-2">
             Consentimiento
           </p>
 
           <div className="space-y-2">
             <Label htmlFor="patient-consent-type" className={LABEL_CLASS}>
-              Tipo de consentimiento <span className="text-destructive">*</span>
+              Tipo de consentimiento <span className="text-rf-danger">*</span>
             </Label>
-            <select
-              id="patient-consent-type"
-              className={SELECT_CLASS}
-              defaultValue=""
-              {...register('consent.type')}
+            <Select
+              value={consentTypeField.field.value ?? ''}
+              onValueChange={consentTypeField.field.onChange}
             >
-              <option value="" disabled>
-                Selecciona tipo
-              </option>
-              {Object.entries(CONSENT_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="patient-consent-type">
+                <SelectValue placeholder="Selecciona tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONSENT_TYPE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.consent?.type && (
-              <p className="text-sm text-destructive">{errors.consent.type.message}</p>
+              <p className="text-sm text-rf-danger">{errors.consent.type.message}</p>
             )}
           </div>
 
@@ -293,7 +295,7 @@ function CreatePatientForm({
 
         {/* Actions */}
         <div className="pt-4 flex gap-3">
-          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">
@@ -373,7 +375,7 @@ function EditPatientForm({ patient, onClose, onSuccess }: EditPatientFormProps) 
     <>
       {errors.root && (
         <div className="mx-8 mt-6 p-3 bg-destructive/10 rounded-lg">
-          <p className="text-destructive text-sm font-medium">{errors.root.message}</p>
+          <p className="text-rf-danger text-sm font-medium">{errors.root.message}</p>
         </div>
       )}
       <form
@@ -443,7 +445,7 @@ function EditPatientForm({ patient, onClose, onSuccess }: EditPatientFormProps) 
 
         {/* Actions */}
         <div className="pt-4 flex gap-3">
-          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">

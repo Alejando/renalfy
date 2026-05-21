@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import type { LocationResponse, UserResponse } from '@repo/types';
 import { UserDrawer } from './user-drawer';
 import { updateUserStatusAction } from '../../../../../actions/users';
-import { EmptyState } from '../../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import {
   Table,
   TableBody,

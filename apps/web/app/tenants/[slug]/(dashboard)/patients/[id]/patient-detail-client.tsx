@@ -22,9 +22,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from '@repo/ui';
 import { PatientDrawer } from '../patient-drawer';
 import { deletePatientAction } from '../../../../../actions/patients';
 
@@ -48,12 +46,10 @@ const CONSENT_TYPE_LABELS: Record<string, string> = {
 
 const CAN_DELETE_ROLES: UserRole[] = ['OWNER', 'ADMIN'];
 
-function getStatusVariant(
-  status: string,
-): 'status-active' | 'status-inactive' | 'status-error' {
-  if (status === 'ACTIVE') return 'status-active';
-  if (status === 'DELETED') return 'status-error';
-  return 'status-inactive';
+function getStatusVariant(status: string): 'success' | 'neutral' | 'danger' {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'DELETED') return 'danger';
+  return 'neutral';
 }
 
 export function PatientDetailClient({
@@ -96,21 +92,21 @@ export function PatientDetailClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-on-surface font-headline">{patient.name}</h1>
+          <h1 className="text-2xl font-bold text-rf-ink font-headline">{patient.name}</h1>
           <div className="flex items-center gap-3 mt-2">
             <Badge variant={getStatusVariant(patient.status)}>
               {STATUS_LABELS[patient.status] ?? patient.status}
             </Badge>
-            <span className="text-secondary text-sm">{patient.locationName}</span>
+            <span className="text-rf-ink-muted text-sm">{patient.locationName}</span>
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <Button variant="outline" onClick={() => setDrawerOpen(true)}>
+          <Button variant="secondary" onClick={() => setDrawerOpen(true)}>
             Editar
           </Button>
           {canDelete && patient.status === 'ACTIVE' && (
             <Button
-              variant="destructive"
+              variant="danger"
               onClick={() => setShowDeleteDialog(true)}
               disabled={isPending}
             >
@@ -162,7 +158,7 @@ export function PatientDetailClient({
               />
             </div>
           ) : (
-            <p className="text-secondary text-sm">Sin consentimiento activo</p>
+            <p className="text-rf-ink-muted text-sm">Sin consentimiento activo</p>
           )}
         </CardContent>
       </Card>
@@ -209,10 +205,10 @@ interface DetailFieldProps {
 function DetailField({ label, value }: DetailFieldProps) {
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold">
+      <p className="text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold">
         {label}
       </p>
-      <p className="text-foreground text-sm">{value ?? '—'}</p>
+      <p className="text-rf-ink text-sm">{value ?? '—'}</p>
     </div>
   );
 }

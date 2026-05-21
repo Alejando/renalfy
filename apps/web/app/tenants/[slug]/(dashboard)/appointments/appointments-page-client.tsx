@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { AppointmentStatusBadge } from './appointment-status-badge';
 import { AppointmentCreateDrawer } from './appointment-create-drawer';
 import {

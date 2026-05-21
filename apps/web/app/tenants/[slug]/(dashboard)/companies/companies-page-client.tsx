@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { EmptyState } from '../../../../components/empty-state';
+import { EmptyState } from '@repo/ui';
 import { CompanyDrawer } from './company-drawer';
 import { deleteCompanyAction } from '../../../../actions/companies';
 

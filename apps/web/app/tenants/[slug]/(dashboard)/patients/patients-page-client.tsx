@@ -15,19 +15,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Button,
+  Badge,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+  EmptyState,
+  PageHeader,
+  SearchInput,
+  Pagination,
+} from '@repo/ui';
 import { PatientDrawer } from './patient-drawer';
 import { deletePatientAction } from '../../../../actions/patients';
-import { EmptyState } from '../../../../components/empty-state';
 
 interface PatientsPageClientProps {
   patients: PaginatedPatientsResponse;
@@ -43,16 +45,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const TABLE_HEAD_CLASS =
-  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+  'text-[10px] font-label uppercase tracking-widest text-rf-ink-muted font-semibold';
 
 const CAN_DELETE_ROLES: UserRole[] = ['OWNER', 'ADMIN'];
 
-function getStatusVariant(
-  status: string,
-): 'status-active' | 'status-inactive' | 'status-error' {
-  if (status === 'ACTIVE') return 'status-active';
-  if (status === 'DELETED') return 'status-error';
-  return 'status-inactive';
+function getStatusVariant(status: string): 'success' | 'neutral' | 'danger' {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'DELETED') return 'danger';
+  return 'neutral';
 }
 
 export function PatientsPageClient({
@@ -102,12 +102,6 @@ export function PatientsPageClient({
     router.push(`?${params.toString()}`);
   };
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
   const goToPage = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
@@ -126,35 +120,23 @@ export function PatientsPageClient({
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-on-surface font-headline">Pacientes</h1>
-          <p className="text-secondary text-sm mt-1">
-            Gestiona el padrón de pacientes de tu clínica
-          </p>
-        </div>
-        <Button variant="gradient" onClick={openCreate}>
-          + Nuevo paciente
-        </Button>
-      </div>
+      <PageHeader
+        title="Pacientes"
+        description="Gestiona el padrón de pacientes de tu clínica"
+        action={
+          <Button variant="gradient" onClick={openCreate}>
+            + Nuevo paciente
+          </Button>
+        }
+      />
 
-      {/* Search bar */}
-      <div className="flex items-center gap-3">
-        <Input
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Buscar por nombre..."
-          className="flex-1"
-        />
-        <Button variant="outline" onClick={handleSearch} aria-label="Buscar">
-          Buscar
-        </Button>
-      </div>
+      <SearchInput
+        value={searchValue}
+        onChange={setSearchValue}
+        onSearch={handleSearch}
+        placeholder="Buscar por nombre..."
+      />
 
-      {/* Table or empty state */}
       {patients.data.length === 0 ? (
         <EmptyState
           title="Sin pacientes aún"
@@ -215,7 +197,7 @@ export function PatientsPageClient({
                     <TableCell>
                       <div className="flex items-center justify-end gap-3">
                         <Button
-                          variant="link"
+                          variant="ghost"
                           size="sm"
                           onClick={() => openEdit(patient)}
                           disabled={patient.status === 'DELETED'}
@@ -225,7 +207,7 @@ export function PatientsPageClient({
                         </Button>
                         {canDelete && patient.status === 'ACTIVE' && (
                           <Button
-                            variant="destructive"
+                            variant="danger"
                             size="sm"
                             onClick={() => setDeleteTargetId(patient.id)}
                             disabled={isPending}
@@ -241,34 +223,17 @@ export function PatientsPageClient({
             </Table>
           </div>
 
-          {/* Pagination */}
           {hasMultiplePages && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-secondary">
-                Página {patients.page} de {Math.ceil(patients.total / patients.limit)}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => goToPage(patients.page - 1)}
-                  disabled={patients.page <= 1}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => goToPage(patients.page + 1)}
-                  disabled={patients.page * patients.limit >= patients.total}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              page={patients.page}
+              total={patients.total}
+              limit={patients.limit}
+              onPageChange={goToPage}
+            />
           )}
         </>
       )}
 
-      {/* AlertDialog for delete confirmation */}
       <AlertDialog
         open={deleteTargetId !== null}
         onOpenChange={(open) => {
