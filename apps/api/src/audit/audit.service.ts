@@ -36,23 +36,31 @@ export class AuditService {
    * debe interrumpir la operación principal del usuario.
    */
   log(entry: AuditEntry): void {
-    this.prisma.auditLog
-      .create({
-        data: {
-          tenantId: entry.tenantId ?? null,
-          userId: entry.userId ?? null,
-          action: entry.action,
-          resource: entry.resource,
-          resourceId: entry.resourceId ?? null,
-          // Prisma 7 Json requires casting from Record<string,unknown>
-          oldValues: (entry.oldValues as object) ?? undefined,
-          newValues: (entry.newValues as object) ?? undefined,
-          ipAddress: entry.ipAddress ?? null,
-          userAgent: entry.userAgent ?? null,
-        },
+    if (!entry.tenantId) return;
+
+    const tenantId = entry.tenantId;
+
+    // AuditLog is RLS-protected. The TenantInterceptor already cleared the
+    // session context by the time this fire-and-forget runs, so we must
+    // re-establish it inside an explicit transaction on its own connection.
+    this.prisma
+      .$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.current_tenant_id', ${tenantId}, false)`;
+        await tx.auditLog.create({
+          data: {
+            tenantId,
+            userId: entry.userId ?? null,
+            action: entry.action,
+            resource: entry.resource,
+            resourceId: entry.resourceId ?? null,
+            oldValues: (entry.oldValues as object) ?? undefined,
+            newValues: (entry.newValues as object) ?? undefined,
+            ipAddress: entry.ipAddress ?? null,
+            userAgent: entry.userAgent ?? null,
+          },
+        });
       })
       .catch((err: unknown) => {
-        // El fallo de auditoría se registra en consola pero no interrumpe el flujo
         console.error('[AuditService] Failed to write audit log:', err);
       });
   }

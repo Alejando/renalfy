@@ -21,19 +21,19 @@ async function main() {
   });
 
   // Branding
+  const brandingData = {
+    primaryColor: '#045062',
+    secondaryColor: '#64748b',
+    tagline: 'Cuidando tu salud renal con tecnología',
+    description: 'Clínica especializada en hemodiálisis con más de 10 años de experiencia.',
+    phone: '33 1234 5678',
+    email: 'contacto@clinica-demo.com',
+    address: 'Av. López Mateos 1234, Guadalajara, Jalisco',
+  };
   await prisma.tenantSettings.upsert({
     where: { tenantId: tenant.id },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      primaryColor: '#0ea5e9',
-      secondaryColor: '#64748b',
-      tagline: 'Cuidando tu salud renal con tecnología',
-      description: 'Clínica especializada en hemodiálisis con más de 10 años de experiencia.',
-      phone: '33 1234 5678',
-      email: 'contacto@clinica-demo.com',
-      address: 'Av. López Mateos 1234, Guadalajara, Jalisco',
-    },
+    update: brandingData,
+    create: { tenantId: tenant.id, ...brandingData },
   });
 
   // Sucursal
