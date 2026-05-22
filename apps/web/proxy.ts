@@ -35,9 +35,12 @@ export function extractSlug(host: string): string | null {
 
 async function tryRefreshToken(refreshToken: string): Promise<string | null> {
   try {
+    // Backend JwtRefreshStrategy extracts the token from body field 'refreshToken',
+    // NOT from the Authorization header.
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${refreshToken}` },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as Record<string, unknown>;
