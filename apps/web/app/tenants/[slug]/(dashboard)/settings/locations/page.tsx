@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import type { LocationResponse } from '@repo/types';
 import { LocationsPageClient } from './locations-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -8,7 +8,8 @@ export default async function LocationsPage() {
 
   try {
     locations = await apiFetch<LocationResponse[]>('/locations');
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar las sucursales." />;
   }
 

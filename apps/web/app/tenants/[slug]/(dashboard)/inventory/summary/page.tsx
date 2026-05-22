@@ -1,5 +1,5 @@
 import type { PaginatedStockSummaryResponse } from '@repo/types';
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../../lib/session';
 import { SummaryPageClient } from './summary-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -35,7 +35,8 @@ export default async function SummaryPage({ searchParams }: SummaryPageProps) {
     summaryData = await apiFetch<PaginatedStockSummaryResponse>(
       `/stock/summary?${query.toString()}`,
     );
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudo cargar el resumen de stock." />;
   }
 

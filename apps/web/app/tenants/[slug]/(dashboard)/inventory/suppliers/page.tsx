@@ -1,5 +1,5 @@
 import type { PaginatedSuppliersResponse } from '@repo/types';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '@/lib/session';
 import { SuppliersPageClient } from './suppliers-page-client';
 import { ErrorState } from '@/app/components/error-state';
@@ -39,7 +39,8 @@ export default async function SuppliersPage({ searchParams }: SuppliersPageProps
     suppliersData = await apiFetch<PaginatedSuppliersResponse>(
       `/suppliers?${query.toString()}`,
     );
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los proveedores." />;
   }
 

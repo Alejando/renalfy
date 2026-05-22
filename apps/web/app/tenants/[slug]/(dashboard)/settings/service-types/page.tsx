@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import type { ServiceTypeResponse } from '@repo/types';
 import { ServiceTypesPageClient } from './service-types-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -8,7 +8,8 @@ export default async function ServiceTypesPage() {
 
   try {
     serviceTypes = await apiFetch<ServiceTypeResponse[]>('/service-types?include=all');
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los tipos de servicio." />;
   }
 

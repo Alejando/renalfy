@@ -1,5 +1,5 @@
 import type { SupplierResponse } from '@repo/types';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '@/lib/session';
 import { SupplierDetailClient } from './supplier-detail-client';
 import { ErrorState } from '@/app/components/error-state';
@@ -39,7 +39,8 @@ export default async function SupplierDetailPage({
       fetchSupplierProductsAction(id),
       fetchAllProductsForSelectAction(),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudo cargar el proveedor." />;
   }
 

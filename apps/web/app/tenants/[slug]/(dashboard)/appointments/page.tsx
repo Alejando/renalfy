@@ -3,7 +3,7 @@ import type {
   PaginatedAppointmentsResponse,
   ServiceTypeResponse,
 } from '@repo/types';
-import { apiFetch } from '../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import { AppointmentsPageClient } from './appointments-page-client';
 import { ErrorState } from '../../../../components/error-state';
@@ -62,7 +62,8 @@ export default async function AppointmentsPage({
       apiFetch<ServiceTypeResponse[]>('/service-types'),
       apiFetch<PaginatedPatientsSummary>('/patients?limit=100'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar las citas." />;
   }
 

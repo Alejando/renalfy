@@ -1,5 +1,5 @@
 import type { PaginatedStockResponse, LocationResponse } from '@repo/types';
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../../lib/session';
 import { StockPageClient } from './stock-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -43,7 +43,8 @@ export default async function StockPage({ searchParams }: StockPageProps) {
         `/stock?${query.toString()}`,
       );
     }
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudo cargar el stock." />;
   }
 

@@ -1,5 +1,5 @@
 import type { PaginatedPurchasesResponse } from '@repo/types';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '@/lib/session';
 import { PurchasesPageClient } from './purchases-page-client';
 import { ErrorState } from '@/app/components/error-state';
@@ -33,7 +33,8 @@ export default async function PurchasesPage({
     purchasesData = await apiFetch<PaginatedPurchasesResponse>(
       `/purchases?${query.toString()}`
     );
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar las compras." />;
   }
 

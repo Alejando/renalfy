@@ -3,7 +3,7 @@ import type {
   LocationResponse,
   ServiceTypeResponse,
 } from '@repo/types';
-import { apiFetch } from '../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import { PlansPageClient } from './plans-page-client';
 import { ErrorState } from '../../../../components/error-state';
@@ -61,7 +61,8 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
       apiFetch<ServiceTypeResponse[]>('/service-types'),
       apiFetch<LocationResponse[]>('/locations'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los planes." />;
   }
 

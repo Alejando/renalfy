@@ -2,6 +2,20 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { PublicTenantResponseSchema, type PublicTenantResponse } from '@repo/types';
 
+/**
+ * Next.js redirect() and notFound() work by throwing a special error with a
+ * 'digest' field. If a try/catch swallows these, the redirect never happens.
+ * Call this in every catch block that wraps apiFetch calls.
+ */
+export function isNextInternalError(error: unknown): boolean {
+  if (error === null || typeof error !== 'object') return false;
+  const digest = (error as Record<string, unknown>)['digest'];
+  return (
+    typeof digest === 'string' &&
+    (digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_NOT_FOUND'))
+  );
+}
+
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 
 /**
@@ -70,10 +84,14 @@ async function attemptTokenRefresh(): Promise<boolean> {
   const API_URL_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3019/api';
 
   try {
+    const cookieStore = await cookies();
+    const refreshToken = cookieStore.get('refresh_token')?.value;
+    if (!refreshToken) return false;
+
     const res = await fetch(`${API_URL_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // include cookies (refresh_token)
+      body: JSON.stringify({ refreshToken }),
     });
 
     if (!res.ok) {
@@ -89,7 +107,6 @@ async function attemptTokenRefresh(): Promise<boolean> {
     const ACCESS_TOKEN_TTL = 60 * 15; // 15 minutes
     const REFRESH_TOKEN_TTL = 60 * 60 * 24 * 7; // 7 days
 
-    const cookieStore = await cookies();
     cookieStore.set('access_token', tokens.accessToken, {
       httpOnly: true,
       secure: IS_PRODUCTION,

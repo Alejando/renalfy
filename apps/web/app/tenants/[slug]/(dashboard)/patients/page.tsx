@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import type { LocationResponse, PaginatedPatientsResponse } from '@repo/types';
 import { PatientsPageClient } from './patients-page-client';
@@ -36,7 +36,8 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
       apiFetch<PaginatedPatientsResponse>(`/patients?${queryParams.toString()}`),
       apiFetch<LocationResponse[]>('/locations'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los pacientes." />;
   }
 

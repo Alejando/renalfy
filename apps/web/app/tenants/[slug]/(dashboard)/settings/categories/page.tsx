@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../../lib/session';
 import { CategoriesPageClient } from './categories-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -27,7 +27,8 @@ export default async function CategoriesPage() {
       '/product-categories?limit=100',
     );
     categories = data.data;
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar las categorías." />;
   }
 

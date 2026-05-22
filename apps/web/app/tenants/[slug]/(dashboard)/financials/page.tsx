@@ -1,3 +1,4 @@
+import { isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import { ErrorState } from '../../../../components/error-state';
 import { FinancialsPageClient } from './financials-page-client';
@@ -61,7 +62,8 @@ export default async function FinancialsPage({ searchParams }: FinancialsPagePro
         type={type}
       />
     );
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los datos financieros." />;
   }
 }

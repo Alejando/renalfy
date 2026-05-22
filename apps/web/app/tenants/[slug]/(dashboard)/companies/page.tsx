@@ -1,5 +1,5 @@
 import type { PaginatedCompaniesResponse } from '@repo/types';
-import { apiFetch } from '../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import { CompaniesPageClient } from './companies-page-client';
 import { ErrorState } from '../../../../components/error-state';
@@ -34,7 +34,8 @@ export default async function CompaniesPage({ searchParams }: CompaniesPageProps
     companiesData = await apiFetch<PaginatedCompaniesResponse>(
       `/companies?${query.toString()}`,
     );
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar las empresas." />;
   }
 

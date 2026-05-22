@@ -1,5 +1,5 @@
 import type { AppointmentResponse, ClinicalTemplateResponse } from '@repo/types';
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '../../../../../../lib/api';
 import { ErrorState } from '../../../../../components/error-state';
 import { AppointmentDetailClient } from './appointment-detail-client';
 
@@ -17,7 +17,8 @@ export default async function AppointmentDetailPage({
 
   try {
     appointment = await apiFetch<AppointmentResponse>(`/appointments/${id}`);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudo cargar la cita." />;
   }
 

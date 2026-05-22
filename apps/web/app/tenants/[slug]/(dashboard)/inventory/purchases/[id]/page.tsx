@@ -1,5 +1,5 @@
 import type { PurchaseDetailResponse } from '@repo/types';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '@/lib/session';
 import { ErrorState } from '@/app/components/error-state';
 import { PurchaseDetailClient } from './purchase-detail-client';
@@ -21,7 +21,8 @@ export default async function PurchaseDetailPage({
   let purchase: PurchaseDetailResponse;
   try {
     purchase = await apiFetch<PurchaseDetailResponse>(`/purchases/${id}`);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudo cargar la compra." />;
   }
 

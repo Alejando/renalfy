@@ -1,5 +1,5 @@
 import type { PaginatedProductsResponse } from '@repo/types';
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../../lib/session';
 import { ProductsPageClient } from './products-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -42,7 +42,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       apiFetch<PaginatedProductsResponse>(`/products?${query.toString()}`),
       apiFetch<CategoryOption[]>('/products/categories'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los productos." />;
   }
 

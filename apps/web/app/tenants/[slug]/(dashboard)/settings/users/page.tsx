@@ -1,4 +1,4 @@
-import { apiFetch } from '../../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import type { LocationResponse, UserResponse } from '@repo/types';
 import { UsersPageClient } from './users-page-client';
 import { ErrorState } from '../../../../../components/error-state';
@@ -12,7 +12,8 @@ export default async function UsersPage() {
       apiFetch<UserResponse[]>('/users'),
       apiFetch<LocationResponse[]>('/locations'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los usuarios." />;
   }
 

@@ -3,7 +3,7 @@ import type {
   PaginatedReceiptsResponse,
   ServiceTypeResponse,
 } from '@repo/types';
-import { apiFetch } from '../../../../../lib/api';
+import { apiFetch, isNextInternalError } from '@/lib/api';
 import { getSessionUser } from '../../../../../lib/session';
 import { ReceiptsPageClient } from './receipts-page-client';
 import { ErrorState } from '../../../../components/error-state';
@@ -63,7 +63,8 @@ export default async function ReceiptsPage({ searchParams }: ReceiptsPageProps) 
       apiFetch<ServiceTypeResponse[]>('/service-types'),
       apiFetch<PaginatedPatientsSummary>('/patients?limit=100'),
     ]);
-  } catch {
+  } catch (error) {
+    if (isNextInternalError(error)) throw error;
     return <ErrorState message="No se pudieron cargar los recibos." />;
   }
 
