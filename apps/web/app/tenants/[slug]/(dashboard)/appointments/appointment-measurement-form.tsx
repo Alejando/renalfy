@@ -5,10 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { TemplateField } from '@repo/types';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Input, Label, Textarea, Button } from '@repo/ui';
 import { createMeasurementAction } from '../../../../actions/appointments';
 import { AppointmentDynamicFields } from './appointment-dynamic-fields';
 
@@ -28,7 +25,7 @@ interface AppointmentMeasurementFormProps {
 }
 
 const LABEL_CLASS =
-  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+  'block text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold';
 
 export function AppointmentMeasurementForm({
   appointmentId,
@@ -74,8 +71,14 @@ export function AppointmentMeasurementForm({
   return (
     <>
       {serverError && (
-        <div className="mb-4 p-3 bg-destructive/10 rounded-lg">
-          <p className="text-destructive text-sm font-medium">{serverError}</p>
+        <div
+          className="mb-4 p-3 rounded-lg"
+          style={{
+            background: 'var(--rf-danger-soft)',
+            border: '1px solid var(--rf-danger)',
+          }}
+        >
+          <p className="text-rf-danger text-sm font-medium">{serverError}</p>
         </div>
       )}
       <form
@@ -83,10 +86,9 @@ export function AppointmentMeasurementForm({
         onSubmit={handleSubmit(onSubmit)}
         className="space-y-5"
       >
-        {/* Recorded At */}
         <div className="space-y-2">
           <Label htmlFor="measurement-recorded-at" className={LABEL_CLASS}>
-            Fecha y hora de medición <span className="text-destructive">*</span>
+            Fecha y hora de medición <span className="text-rf-danger">*</span>
           </Label>
           <Input
             id="measurement-recorded-at"
@@ -95,11 +97,10 @@ export function AppointmentMeasurementForm({
             {...register('recordedAt')}
           />
           {errors.recordedAt && (
-            <p className="text-sm text-destructive">{errors.recordedAt.message}</p>
+            <p className="text-sm text-rf-danger">{errors.recordedAt.message}</p>
           )}
         </div>
 
-        {/* Dynamic fields from template */}
         <AppointmentDynamicFields
           fields={templateFields}
           register={register}
@@ -107,7 +108,6 @@ export function AppointmentMeasurementForm({
           fieldPrefix="data."
         />
 
-        {/* Notes */}
         <div className="space-y-2">
           <Label htmlFor="measurement-notes" className={LABEL_CLASS}>
             Notas
@@ -120,14 +120,13 @@ export function AppointmentMeasurementForm({
           />
         </div>
 
-        {/* Actions */}
         <div className="pt-4 flex gap-3">
-          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
           <Button
             type="submit"
-            variant="gradient"
+            variant="primary"
             disabled={isSubmitting}
             className="flex-1"
           >

@@ -298,7 +298,7 @@ function CreatePatientForm({
           <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1">
             {isSubmitting ? 'Guardando…' : 'Crear paciente'}
           </Button>
         </div>
@@ -448,7 +448,7 @@ function EditPatientForm({ patient, onClose, onSuccess }: EditPatientFormProps) 
           <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" variant="gradient" disabled={isSubmitting} className="flex-1">
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="flex-1">
             {isSubmitting ? 'Guardando…' : 'Guardar cambios'}
           </Button>
         </div>
