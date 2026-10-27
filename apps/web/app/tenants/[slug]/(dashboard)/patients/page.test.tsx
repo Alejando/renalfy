@@ -5,6 +5,7 @@ import type { LocationResponse, PaginatedPatientsResponse, UserRole } from '@rep
 vi.mock('../../../../../lib/api', () => ({
   apiFetch: vi.fn(),
   getPublicTenant: vi.fn(),
+  isNextInternalError: vi.fn(() => false),
 }));
 
 vi.mock('../../../../../lib/session', () => ({
@@ -94,7 +95,7 @@ describe('PatientsPage', () => {
     vi.mocked(apiFetch)
       .mockResolvedValueOnce(mockPatientsData)
       .mockResolvedValueOnce(mockLocations);
-    render(await PatientsPage({ searchParams: Promise.resolve({}) }));
+    render(await PatientsPage({ params: Promise.resolve({ slug: 'test-tenant' }), searchParams: Promise.resolve({}) }));
     expect(screen.getByTestId('patients-client')).toBeInTheDocument();
     expect(screen.getByTestId('patient-row')).toHaveTextContent('Juan Pérez');
   });
@@ -103,13 +104,13 @@ describe('PatientsPage', () => {
     vi.mocked(apiFetch)
       .mockResolvedValueOnce(mockPatientsData)
       .mockResolvedValueOnce(mockLocations);
-    render(await PatientsPage({ searchParams: Promise.resolve({}) }));
+    render(await PatientsPage({ params: Promise.resolve({ slug: 'test-tenant' }), searchParams: Promise.resolve({}) }));
     expect(screen.getByTestId('role')).toHaveTextContent('OWNER');
   });
 
   it('renders ErrorState when API throws', async () => {
     vi.mocked(apiFetch).mockRejectedValue(new Error('API error: 500'));
-    render(await PatientsPage({ searchParams: Promise.resolve({}) }));
+    render(await PatientsPage({ params: Promise.resolve({ slug: 'test-tenant' }), searchParams: Promise.resolve({}) }));
     expect(screen.getByTestId('error-state')).toBeInTheDocument();
   });
 
@@ -118,7 +119,7 @@ describe('PatientsPage', () => {
     vi.mocked(apiFetch)
       .mockResolvedValueOnce(mockPatientsData)
       .mockResolvedValueOnce(mockLocations);
-    render(await PatientsPage({ searchParams: Promise.resolve({}) }));
+    render(await PatientsPage({ params: Promise.resolve({ slug: 'test-tenant' }), searchParams: Promise.resolve({}) }));
     expect(screen.getByTestId('error-state')).toBeInTheDocument();
   });
 });

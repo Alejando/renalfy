@@ -22,6 +22,10 @@ export function Topbar({
   actions,
   className,
 }: TopbarProps) {
+  if (!title && (!breadcrumbs || breadcrumbs.length === 0) && !actions) {
+    return null;
+  }
+
   return (
     <div
       className={cn(

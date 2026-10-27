@@ -44,6 +44,9 @@ type PrismaAppointment = {
   createdAt: Date;
   updatedAt: Date;
   measurements?: PrismaMeasurement[];
+  patient?: { id: string; name: string };
+  serviceType?: { id: string; name: string } | null;
+  location?: { id: string; name: string };
 };
 
 type PrismaMeasurement = {
@@ -136,7 +139,7 @@ export class AppointmentsService {
         notes: dto.notes,
         status: 'SCHEDULED',
       },
-      include: { measurements: true },
+      include: { measurements: true, patient: true, serviceType: true, location: true },
     });
 
     return this.toResponse(appointment as PrismaAppointment);
@@ -193,7 +196,7 @@ export class AppointmentsService {
         notes: dto.notes,
         ...timestamps,
       },
-      include: { measurements: true },
+      include: { measurements: true, patient: true, serviceType: true, location: true },
     });
 
     return this.toResponse(updated as PrismaAppointment);
@@ -224,7 +227,7 @@ export class AppointmentsService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { scheduledAt: 'asc' },
-        include: { measurements: true },
+        include: { measurements: true, patient: true, serviceType: true, location: true },
       }),
       this.prisma.appointment.count({ where }),
     ]);
@@ -250,7 +253,7 @@ export class AppointmentsService {
         tenantId,
         ...(userLocationId !== null && { locationId: userLocationId }),
       },
-      include: { measurements: true },
+      include: { measurements: true, patient: true, serviceType: true, location: true },
     });
 
     if (!appointment) {
@@ -323,6 +326,9 @@ export class AppointmentsService {
         data: m.data,
         notes: m.notes,
       })),
+      patientName: appt.patient?.name ?? '',
+      serviceTypeName: appt.serviceType?.name ?? null,
+      locationName: appt.location?.name ?? '',
       createdAt: appt.createdAt,
       updatedAt: appt.updatedAt,
     };

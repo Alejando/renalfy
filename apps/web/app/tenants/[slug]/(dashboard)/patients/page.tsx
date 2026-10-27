@@ -5,14 +5,23 @@ import { PatientsPageClient } from './patients-page-client';
 import { ErrorState } from '../../../../components/error-state';
 
 interface PatientsPageProps {
+  params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function PatientsPage({ searchParams }: PatientsPageProps) {
+export default async function PatientsPage({ params: routeParams, searchParams }: PatientsPageProps) {
+  const { slug } = await routeParams;
   const params = await searchParams;
   const page = typeof params['page'] === 'string' ? Number(params['page']) : 1;
   const search = typeof params['search'] === 'string' ? params['search'] : undefined;
   const include = params['include'] === 'deleted' ? 'deleted' : undefined;
+  const locationId = typeof params['locationId'] === 'string' ? params['locationId'] : undefined;
+  const status =
+    params['status'] === 'ACTIVE' ||
+    params['status'] === 'INACTIVE' ||
+    params['status'] === 'DELETED'
+      ? (params['status'] as 'ACTIVE' | 'INACTIVE' | 'DELETED')
+      : undefined;
 
   const sessionUser = await getSessionUser();
   if (!sessionUser) {
@@ -25,12 +34,10 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
   try {
     const queryParams = new URLSearchParams();
     queryParams.set('page', page.toString());
-    if (search) {
-      queryParams.set('search', search);
-    }
-    if (include) {
-      queryParams.set('include', include);
-    }
+    if (search) queryParams.set('search', search);
+    if (include) queryParams.set('include', include);
+    if (locationId) queryParams.set('locationId', locationId);
+    if (status) queryParams.set('status', status);
 
     [patientsData, locations] = await Promise.all([
       apiFetch<PaginatedPatientsResponse>(`/patients?${queryParams.toString()}`),

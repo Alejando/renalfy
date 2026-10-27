@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Input } from './input';
-import { Button } from './button';
+import { Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export interface SearchInputProps {
@@ -25,18 +24,16 @@ export function SearchInput({
   };
 
   return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <Input
+    <div className={cn('relative flex items-center', className)}>
+      <Search className="absolute left-3 h-4 w-4 text-rf-ink-soft pointer-events-none" />
+      <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1"
+        className="w-full h-10 pl-9 pr-4 rounded-rf bg-rf-surface-sunk text-sm text-rf-ink placeholder:text-rf-ink-soft focus:outline-none focus:ring-2 focus:ring-rf-primary/20 focus:bg-white transition-rf"
       />
-      <Button variant="secondary" onClick={onSearch} aria-label="Buscar">
-        Buscar
-      </Button>
     </div>
   );
 }

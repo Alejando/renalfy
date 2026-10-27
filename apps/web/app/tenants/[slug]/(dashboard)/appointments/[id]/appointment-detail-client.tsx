@@ -3,16 +3,25 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ArrowRightLeft, Plus } from 'lucide-react';
 import type {
   AppointmentResponse,
   ClinicalTemplateResponse,
   AppointmentStatus,
 } from '@repo/types';
-import { Button } from '@/components/ui/button';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from '@repo/ui';
 import { AppointmentStatusBadge } from '../appointment-status-badge';
 import { AppointmentStatusTransitionDrawer } from '../appointment-status-transition-drawer';
+import { AppointmentMeasurementDrawer } from '../appointment-measurement-drawer';
 import { AppointmentMeasurementList } from '../appointment-measurement-list';
-import { AppointmentMeasurementForm } from '../appointment-measurement-form';
 import { APPOINTMENT_VALID_TRANSITIONS } from '../appointment-constants';
 
 interface AppointmentDetailClientProps {
@@ -20,20 +29,9 @@ interface AppointmentDetailClientProps {
   clinicalTemplate: ClinicalTemplateResponse | null;
 }
 
-const SECTION_LABEL =
-  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
-
-const VALUE_CLASS = 'text-foreground font-medium text-sm';
-
-function formatDateTime(date: Date): string {
-  return new Intl.DateTimeFormat('es-MX', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
-}
+const LABEL_CLASS =
+  'text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold';
+const VALUE_CLASS = 'text-rf-ink font-medium text-sm';
 
 const ACTIVE_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'IN_PROGRESS'];
 
@@ -45,43 +43,97 @@ function isTerminalStatus(status: AppointmentStatus): boolean {
   return APPOINTMENT_VALID_TRANSITIONS[status].length === 0;
 }
 
+function formatDateTime(date: Date): string {
+  return new Intl.DateTimeFormat('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date));
+}
+
+function formatDateShort(date: Date): string {
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(date));
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0] ?? '';
+  if (parts.length === 1) return first.slice(0, 2).toUpperCase();
+  const last = parts[parts.length - 1] ?? '';
+  return ((first[0] ?? '') + (last[0] ?? '')).toUpperCase();
+}
+
+function PatientAvatar({ name }: { name: string }) {
+  return (
+    <div
+      className="flex-shrink-0 inline-flex items-center justify-center rounded-full font-bold text-rf-primary-ink"
+      style={{ width: 44, height: 44, background: 'var(--rf-primary-soft)', fontSize: 15 }}
+    >
+      {getInitials(name)}
+    </div>
+  );
+}
+
 export function AppointmentDetailClient({
   appointment,
   clinicalTemplate,
 }: AppointmentDetailClientProps) {
   const router = useRouter();
   const [transitionDrawerOpen, setTransitionDrawerOpen] = useState(false);
-  const [showMeasurementForm, setShowMeasurementForm] = useState(false);
+  const [measurementDrawerOpen, setMeasurementDrawerOpen] = useState(false);
   const canTransition = !isTerminalStatus(appointment.status);
   const canAddMeasurement = isActiveStatus(appointment.status);
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
-      <div>
-        <Link
-          href="/appointments"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Volver a citas
-        </Link>
-      </div>
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/appointments" />}>
+              Citas
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{formatDateShort(appointment.scheduledAt)}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className={SECTION_LABEL}>Cita</p>
-          <h1 className="text-2xl font-bold text-on-surface font-headline mt-1">
-            {formatDateTime(appointment.scheduledAt)}
-          </h1>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <PatientAvatar name={appointment.patientName} />
+          <div>
+            <h1 className="text-2xl font-bold text-rf-ink font-headline leading-tight">
+              {appointment.patientName}
+            </h1>
+            <div className="flex items-center gap-3 mt-1.5">
+              <AppointmentStatusBadge status={appointment.status} />
+              {appointment.serviceTypeName && (
+                <span className="text-rf-ink-muted text-sm">{appointment.serviceTypeName}</span>
+              )}
+              <span className="text-rf-ink-muted text-sm">{appointment.locationName}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <AppointmentStatusBadge status={appointment.status} />
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {canAddMeasurement && (
+            <Button variant="secondary" onClick={() => setMeasurementDrawerOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Medición
+            </Button>
+          )}
           {canTransition && (
-            <Button
-              variant="outline"
-              onClick={() => setTransitionDrawerOpen(true)}
-            >
+            <Button variant="secondary" onClick={() => setTransitionDrawerOpen(true)}>
+              <ArrowRightLeft className="h-4 w-4" />
               Cambiar estado
             </Button>
           )}
@@ -93,90 +145,54 @@ export function AppointmentDetailClient({
         </div>
       </div>
 
-      {/* Appointment Info Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 rounded-xl border p-6">
-        <div className="space-y-1">
-          <p className={SECTION_LABEL}>Fecha programada</p>
-          <p className={VALUE_CLASS}>{formatDateTime(appointment.scheduledAt)}</p>
-        </div>
+      {/* Tiempos */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline font-semibold">Tiempos</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <DetailField label="Programada" value={formatDateTime(appointment.scheduledAt)} />
+          {appointment.startedAt && (
+            <DetailField label="Inicio" value={formatDateTime(appointment.startedAt)} />
+          )}
+          {appointment.endedAt && (
+            <DetailField label="Fin" value={formatDateTime(appointment.endedAt)} />
+          )}
+        </CardContent>
+      </Card>
 
-        {appointment.startedAt && (
-          <div className="space-y-1">
-            <p className={SECTION_LABEL}>Inicio</p>
-            <p className={VALUE_CLASS}>{formatDateTime(appointment.startedAt)}</p>
-          </div>
-        )}
+      {/* Paciente */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline font-semibold">Paciente</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className={VALUE_CLASS}>{appointment.patientName}</p>
+          <Link
+            href={`/patients/${appointment.patientId}`}
+            className="text-rf-primary hover:underline decoration-2 underline-offset-2 font-medium text-sm"
+          >
+            Ver expediente del paciente →
+          </Link>
+        </CardContent>
+      </Card>
 
-        {appointment.endedAt && (
-          <div className="space-y-1">
-            <p className={SECTION_LABEL}>Fin</p>
-            <p className={VALUE_CLASS}>{formatDateTime(appointment.endedAt)}</p>
-          </div>
-        )}
-
-        {appointment.notes && (
-          <div className="space-y-1 col-span-full">
-            <p className={SECTION_LABEL}>Notas</p>
+      {/* Notas */}
+      {appointment.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline font-semibold">Notas</CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className={VALUE_CLASS}>{appointment.notes}</p>
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <p className={SECTION_LABEL}>Creado</p>
-          <p className={VALUE_CLASS}>{formatDateTime(appointment.createdAt)}</p>
-        </div>
-      </div>
-
-      {/* Patient card */}
-      <div className="rounded-xl border p-6 space-y-2">
-        <p className={SECTION_LABEL}>Paciente</p>
-        <Link
-          href={`/patients/${appointment.patientId}`}
-          className="text-primary hover:underline decoration-2 underline-offset-2 font-medium text-sm"
-        >
-          Ver expediente del paciente
-        </Link>
-      </div>
-
-      {/* Service type card */}
-      {appointment.serviceTypeId && (
-        <div className="rounded-xl border p-6 space-y-2">
-          <p className={SECTION_LABEL}>Tipo de servicio</p>
-          <p className={VALUE_CLASS}>{appointment.serviceTypeId}</p>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Measurements list */}
+      {/* Mediciones */}
       <AppointmentMeasurementList measurements={appointment.measurements} />
 
-      {/* New measurement form */}
-      {canAddMeasurement && (
-        <div className="rounded-xl border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className={SECTION_LABEL}>Nueva medición</p>
-            {!showMeasurementForm && (
-              <Button
-                variant="outline"
-                onClick={() => setShowMeasurementForm(true)}
-              >
-                + Registrar medición
-              </Button>
-            )}
-          </div>
-          {showMeasurementForm && (
-            <AppointmentMeasurementForm
-              appointmentId={appointment.id}
-              templateFields={clinicalTemplate?.fields ?? []}
-              onSuccess={() => {
-                setShowMeasurementForm(false);
-                router.refresh();
-              }}
-              onClose={() => setShowMeasurementForm(false)}
-            />
-          )}
-        </div>
-      )}
-
+      {/* Drawers */}
       <AppointmentStatusTransitionDrawer
         open={transitionDrawerOpen}
         onClose={() => setTransitionDrawerOpen(false)}
@@ -187,6 +203,31 @@ export function AppointmentDetailClient({
         appointmentId={appointment.id}
         currentStatus={appointment.status}
       />
+
+      <AppointmentMeasurementDrawer
+        open={measurementDrawerOpen}
+        onClose={() => setMeasurementDrawerOpen(false)}
+        onSuccess={() => {
+          setMeasurementDrawerOpen(false);
+          router.refresh();
+        }}
+        appointmentId={appointment.id}
+        templateFields={clinicalTemplate?.fields ?? []}
+      />
+    </div>
+  );
+}
+
+interface DetailFieldProps {
+  label: string;
+  value: string | null | undefined;
+}
+
+function DetailField({ label, value }: DetailFieldProps) {
+  return (
+    <div className="space-y-1">
+      <p className={LABEL_CLASS}>{label}</p>
+      <p className={VALUE_CLASS}>{value ?? '—'}</p>
     </div>
   );
 }

@@ -34,6 +34,8 @@ export const PatientQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
   include: z.enum(['deleted']).optional(),
+  locationId: z.string().uuid().optional(),
+  status: PatientStatusSchema.optional(),
 });
 
 export const PatientResponseSchema = z.object({

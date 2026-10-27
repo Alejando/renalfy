@@ -9,21 +9,19 @@ import { AppointmentsPageClient } from './appointments-page-client';
 import { ErrorState } from '../../../../components/error-state';
 
 interface AppointmentsPageProps {
+  params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-interface PatientSummary {
-  id: string;
-  name: string;
-}
-
 interface PaginatedPatientsSummary {
-  data: PatientSummary[];
+  data: Array<{ id: string; name: string }>;
 }
 
 export default async function AppointmentsPage({
+  params: routeParams,
   searchParams,
 }: AppointmentsPageProps) {
+  const { slug: _slug } = await routeParams;
   const params = await searchParams;
   const page = typeof params['page'] === 'string' ? Number(params['page']) : 1;
   const status = typeof params['status'] === 'string' ? params['status'] : undefined;
@@ -44,15 +42,9 @@ export default async function AppointmentsPage({
   try {
     const queryParams = new URLSearchParams();
     queryParams.set('page', page.toString());
-    if (status) {
-      queryParams.set('status', status);
-    }
-    if (date) {
-      queryParams.set('date', date);
-    }
-    if (patientId) {
-      queryParams.set('patientId', patientId);
-    }
+    if (status) queryParams.set('status', status);
+    if (date) queryParams.set('date', date);
+    if (patientId) queryParams.set('patientId', patientId);
 
     [appointmentsData, locations, serviceTypes, patientsData] = await Promise.all([
       apiFetch<PaginatedAppointmentsResponse>(

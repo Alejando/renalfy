@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { PublicTenantResponseSchema, type PublicTenantResponse } from '@repo/types';
@@ -128,7 +129,7 @@ async function attemptTokenRefresh(): Promise<boolean> {
   }
 }
 
-export async function getPublicTenant(slug: string): Promise<PublicTenantResponse | null> {
+export const getPublicTenant = cache(async function getPublicTenant(slug: string): Promise<PublicTenantResponse | null> {
   const res = await fetch(`${API_URL}/public/tenants/${slug}`, {
     next: { revalidate: 60 },
   });
@@ -143,4 +144,4 @@ export async function getPublicTenant(slug: string): Promise<PublicTenantRespons
 
   const data: unknown = await res.json();
   return PublicTenantResponseSchema.parse(data);
-}
+});

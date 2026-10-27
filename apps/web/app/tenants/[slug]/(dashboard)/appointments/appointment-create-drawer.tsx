@@ -52,9 +52,9 @@ export function AppointmentCreateDrawer({
       }}
     >
       <SheetContent side="right" className="w-full max-w-md flex flex-col p-0">
-        <SheetHeader className="px-8 py-6 bg-muted">
-          <SheetTitle className="font-headline font-bold text-xl">Nueva cita</SheetTitle>
-          <SheetDescription>
+        <SheetHeader className="px-8 py-6" style={{ background: 'var(--rf-surface-sunk)', borderBottom: '1px solid var(--rf-line)' }}>
+          <SheetTitle className="font-extrabold text-xl text-rf-ink" style={{ fontFamily: 'var(--rf-font-sans)' }}>Nueva cita</SheetTitle>
+          <SheetDescription className="text-rf-ink-soft text-sm">
             Programa una nueva cita para un paciente
           </SheetDescription>
         </SheetHeader>

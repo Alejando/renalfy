@@ -114,13 +114,29 @@ export class PatientsService {
   ): Promise<PaginatedPatientsResponse> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const { search, include } = query;
+    const { search, include, locationId, status } = query;
     const isIncludeDeleted = include === 'deleted';
+
+    // Status: explicit param > include=deleted (show all) > default ACTIVE
+    const statusFilter = status
+      ? { status }
+      : isIncludeDeleted
+        ? {}
+        : { status: 'ACTIVE' as const };
+
+    // Location: MANAGER is always scoped to their location;
+    //           OWNER/ADMIN can optionally filter by a specific locationId
+    const locationFilter =
+      userLocationId !== null
+        ? { locationId: userLocationId }
+        : locationId
+          ? { locationId }
+          : {};
 
     const where = {
       tenantId,
-      ...(userLocationId !== null && { locationId: userLocationId }),
-      ...(isIncludeDeleted ? {} : { status: 'ACTIVE' as const }),
+      ...locationFilter,
+      ...statusFilter,
       ...(search !== undefined && {
         name: { contains: search, mode: 'insensitive' as const },
       }),

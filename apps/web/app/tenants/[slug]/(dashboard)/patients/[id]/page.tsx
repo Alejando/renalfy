@@ -1,6 +1,6 @@
 import { apiFetch } from '../../../../../../lib/api';
 import { getSessionUser } from '../../../../../../lib/session';
-import type { PatientResponse } from '@repo/types';
+import type { PatientResponse, PaginatedAppointmentsResponse } from '@repo/types';
 import { PatientDetailClient } from './patient-detail-client';
 import { ErrorState } from '../../../../../components/error-state';
 
@@ -17,6 +17,8 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
   }
 
   let patient: PatientResponse;
+  let appointments: PaginatedAppointmentsResponse;
+
   try {
     patient = await apiFetch<PatientResponse>(`/patients/${id}`);
   } catch (e: unknown) {
@@ -27,9 +29,18 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
     return <ErrorState message="No se pudo cargar el paciente." />;
   }
 
+  try {
+    appointments = await apiFetch<PaginatedAppointmentsResponse>(
+      `/appointments?patientId=${id}&limit=50`,
+    );
+  } catch {
+    appointments = { data: [], total: 0, page: 1, limit: 50 };
+  }
+
   return (
     <PatientDetailClient
       patient={patient}
+      appointments={appointments}
       userRole={sessionUser.role}
       userLocationId={sessionUser.locationId}
     />

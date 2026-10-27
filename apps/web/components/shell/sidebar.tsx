@@ -19,7 +19,16 @@ export interface SidebarProps {
   onLogout?: () => void;
   userRole?: string;
   userName?: string;
+  tenantName?: string;
 }
+
+const ROLE_LABELS: Record<string, string> = {
+  OWNER: 'Propietario',
+  ADMIN: 'Administrador',
+  MANAGER: 'Encargado',
+  STAFF: 'Personal',
+  SUPER_ADMIN: 'Super Admin',
+};
 
 export function Sidebar({
   open = true,
@@ -28,6 +37,7 @@ export function Sidebar({
   onLogout,
   userRole,
   userName,
+  tenantName = 'Renalfy',
 }: SidebarProps) {
   return (
     <>
@@ -50,51 +60,69 @@ export function Sidebar({
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Header */}
-        <div className="px-6 py-8 border-b border-rf-primary">
-          <h1 className="text-xl font-bold">Renalfy</h1>
-          <p className="text-sm text-rf-primary-soft">Clínica</p>
+        {/* Header — tenant brand */}
+        <div className="px-6 py-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-rf bg-rf-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-bold">
+                {tenantName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white leading-tight truncate">{tenantName}</p>
+              <p className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">Clínica</p>
+            </div>
+          </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => (
             <a
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-4 py-2 rounded-rf text-sm font-medium transition-rf',
+                'flex items-center gap-3 px-3 py-2.5 rounded-rf text-sm font-medium transition-rf',
                 item.active
-                  ? 'bg-rf-primary-soft text-rf-primary-ink'
-                  : 'text-rf-on-primary hover:bg-rf-primary'
+                  ? 'bg-white/15 text-white'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               )}
             >
-              {item.icon && <span className="h-5 w-5">{item.icon}</span>}
+              {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
               <span>{item.label}</span>
             </a>
           ))}
         </nav>
 
         {/* User section */}
-        <div className="border-t border-rf-primary px-4 py-4 space-y-3">
+        <div className="border-t border-white/10 px-3 py-3">
           {(userName || userRole) && (
-            <div className="px-2">
-              {userName && <p className="text-sm font-medium text-white">{userName}</p>}
-              {userRole && (
-                <p className="text-xs text-rf-primary-soft uppercase">{userRole}</p>
-              )}
+            <div className="flex items-center gap-3 px-3 py-2 mb-1">
+              <div className="h-7 w-7 rounded-full bg-rf-primary flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-semibold">
+                  {userName ? userName.charAt(0).toUpperCase() : '?'}
+                </span>
+              </div>
+              <div className="min-w-0">
+                {userName && (
+                  <p className="text-sm font-medium text-white leading-tight truncate">{userName}</p>
+                )}
+                {userRole && (
+                  <p className="text-[10px] text-white/50 uppercase tracking-widest">
+                    {ROLE_LABELS[userRole] ?? userRole}
+                  </p>
+                )}
+              </div>
             </div>
           )}
           {onLogout && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={onLogout}
-              className="w-full justify-start text-rf-on-primary hover:bg-rf-primary"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-rf text-sm text-white/70 hover:bg-white/10 hover:text-white transition-rf"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              <span>Cerrar sesión</span>
+            </button>
           )}
         </div>
       </aside>

@@ -5,6 +5,7 @@ import type { LocationResponse } from '@repo/types';
 vi.mock('../../../../../../lib/api', () => ({
   apiFetch: vi.fn(),
   getPublicTenant: vi.fn(),
+  isNextInternalError: vi.fn(() => false),
 }));
 
 vi.mock('./locations-page-client', () => ({

@@ -53,6 +53,9 @@ export const AppointmentResponseSchema = z.object({
   clinicalData: z.record(z.string(), z.unknown()).nullable(),
   notes: z.string().nullable(),
   measurements: z.array(MeasurementResponseSchema),
+  patientName: z.string(),
+  serviceTypeName: z.string().nullable(),
+  locationName: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

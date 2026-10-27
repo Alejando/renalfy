@@ -38,9 +38,10 @@ interface DashboardShellProps {
   children: React.ReactNode;
   userName: string;
   userRole: string;
+  tenantName: string;
 }
 
-export function DashboardShell({ children, userName, userRole }: DashboardShellProps) {
+export function DashboardShell({ children, userName, userRole, tenantName }: DashboardShellProps) {
   const pathname = usePathname();
   const [, startTransition] = useTransition();
 
@@ -74,6 +75,7 @@ export function DashboardShell({ children, userName, userRole }: DashboardShellP
         navItems,
         userName,
         userRole,
+        tenantName,
         onLogout: handleLogout,
       }}
     >

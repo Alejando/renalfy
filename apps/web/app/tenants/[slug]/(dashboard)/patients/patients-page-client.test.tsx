@@ -12,19 +12,17 @@ vi.mock('next/link', () => ({
     href,
     children,
     className,
+    'aria-label': ariaLabel,
   }: {
     href: string;
     children: React.ReactNode;
     className?: string;
+    'aria-label'?: string;
   }) => (
-    <a href={href} className={className}>
+    <a href={href} className={className} aria-label={ariaLabel}>
       {children}
     </a>
   ),
-}));
-
-vi.mock('../../../../actions/patients', () => ({
-  deletePatientAction: vi.fn(),
 }));
 
 vi.mock('./patient-drawer', () => ({
@@ -33,11 +31,9 @@ vi.mock('./patient-drawer', () => ({
 }));
 
 import { useRouter } from 'next/navigation';
-import { deletePatientAction } from '../../../../actions/patients';
 import { PatientsPageClient } from './patients-page-client';
 
 const mockRouterPush = vi.fn();
-const mockRouterRefresh = vi.fn();
 
 const makePatient = (overrides: Partial<PaginatedPatientsResponse['data'][0]> = {}): PaginatedPatientsResponse['data'][0] => ({
   id: 'patient-1',
@@ -70,7 +66,7 @@ describe('PatientsPageClient', () => {
     vi.clearAllMocks();
     vi.mocked(useRouter).mockReturnValue({
       push: mockRouterPush,
-      refresh: mockRouterRefresh,
+      refresh: vi.fn(),
       back: vi.fn(),
       forward: vi.fn(),
       replace: vi.fn(),
@@ -125,7 +121,9 @@ describe('PatientsPageClient', () => {
         locations={[]}
       />,
     );
-    expect(screen.getByText('Activo')).toBeInTheDocument();
+    // Badge is rendered inside a <div> (not an <option>)
+    const badges = screen.getAllByText('Activo');
+    expect(badges.some((el) => el.tagName !== 'OPTION')).toBe(true);
   });
 
   it('shows DELETED badge for deleted patients', () => {
@@ -137,10 +135,12 @@ describe('PatientsPageClient', () => {
         locations={[]}
       />,
     );
-    expect(screen.getByText('Dado de baja')).toBeInTheDocument();
+    // Badge is rendered inside a <div> (not an <option>)
+    const badges = screen.getAllByText('Dado de baja');
+    expect(badges.some((el) => el.tagName !== 'OPTION')).toBe(true);
   });
 
-  it('navigates with search param when search button is clicked', () => {
+  it('navigates with search param when Enter is pressed', () => {
     render(
       <PatientsPageClient
         patients={makePatients()}
@@ -151,11 +151,11 @@ describe('PatientsPageClient', () => {
     );
     const searchInput = screen.getByPlaceholderText(/buscar/i);
     fireEvent.change(searchInput, { target: { value: 'Juan' } });
-    fireEvent.click(screen.getByRole('button', { name: /buscar/i }));
+    fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter' });
     expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('search=Juan'));
   });
 
-  it('does not show pagination when total <= limit', () => {
+  it('shows pagination disabled when total <= limit', () => {
     render(
       <PatientsPageClient
         patients={makePatients([makePatient()])}
@@ -164,8 +164,8 @@ describe('PatientsPageClient', () => {
         locations={[]}
       />,
     );
-    expect(screen.queryByRole('button', { name: /anterior/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /siguiente/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /siguiente/i })).toBeDisabled();
   });
 
   it('shows pagination when total > limit', () => {
@@ -181,7 +181,7 @@ describe('PatientsPageClient', () => {
     expect(screen.getByRole('button', { name: /siguiente/i })).toBeInTheDocument();
   });
 
-  it('shows "Dar de baja" button for OWNER on active patients', () => {
+  it('renders link to patient detail for each row chevron', () => {
     render(
       <PatientsPageClient
         patients={makePatients()}
@@ -190,96 +190,19 @@ describe('PatientsPageClient', () => {
         locations={[]}
       />,
     );
-    expect(screen.getByRole('button', { name: /dar de baja/i })).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /ver detalle/i });
+    expect(link).toHaveAttribute('href', '/patients/patient-1');
   });
 
-  it('does NOT show "Dar de baja" button for STAFF', () => {
+  it('does NOT show inline "Dar de baja" button in the table', () => {
     render(
       <PatientsPageClient
         patients={makePatients()}
-        userRole="STAFF"
-        userLocationId="loc-1"
+        userRole="OWNER"
+        userLocationId={null}
         locations={[]}
       />,
     );
     expect(screen.queryByRole('button', { name: /dar de baja/i })).not.toBeInTheDocument();
-  });
-
-  it('disables Edit button for DELETED patients', () => {
-    render(
-      <PatientsPageClient
-        patients={makePatients([makePatient({ status: 'DELETED' })])}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={[]}
-      />,
-    );
-    expect(screen.getByRole('button', { name: /editar/i })).toBeDisabled();
-  });
-
-  it('clicking "Dar de baja" opens AlertDialog (not executing action immediately)', async () => {
-    render(
-      <PatientsPageClient
-        patients={makePatients()}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={[]}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    });
-    expect(vi.mocked(deletePatientAction)).not.toHaveBeenCalled();
-  });
-
-  it('Cancel button in AlertDialog closes dialog without executing action', async () => {
-    render(
-      <PatientsPageClient
-        patients={makePatients()}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={[]}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
-    await waitFor(() => {
-      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    });
-    expect(vi.mocked(deletePatientAction)).not.toHaveBeenCalled();
-  });
-
-  it('confirming baja in AlertDialog executes deletePatientAction and refreshes', async () => {
-    vi.mocked(deletePatientAction).mockResolvedValue(null);
-    render(
-      <PatientsPageClient
-        patients={makePatients()}
-        userRole="OWNER"
-        userLocationId={null}
-        locations={[]}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    });
-    // There are two "Dar de baja" buttons: the row button and the confirm button in dialog
-    const allDarDeBajaButtons = screen.getAllByRole('button', { name: /dar de baja/i });
-    // The confirm button is the one inside the alertdialog
-    const confirmButton = allDarDeBajaButtons.find(
-      (btn) => btn.closest('[role="alertdialog"]') !== null,
-    );
-    expect(confirmButton).toBeDefined();
-    fireEvent.click(confirmButton!);
-    await waitFor(() => {
-      expect(vi.mocked(deletePatientAction)).toHaveBeenCalledWith('patient-1');
-    });
-    await waitFor(() => {
-      expect(mockRouterRefresh).toHaveBeenCalled();
-    });
   });
 });

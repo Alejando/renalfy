@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { LocationResponse, PatientResponse } from '@repo/types';
 
@@ -7,6 +7,52 @@ vi.mock('../../../../actions/patients', () => ({
   createPatientAction: vi.fn(),
   updatePatientAction: vi.fn(),
 }));
+
+// Radix Select portals do not render in jsdom. Replace with native <select>
+// so label associations and userEvent.selectOptions work correctly.
+vi.mock('@repo/ui', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  const React = await import('react');
+
+  function SelectTrigger({ id: _id }: { id?: string; children?: React.ReactNode }) {
+    return null;
+  }
+  function SelectContent({ children }: { children?: React.ReactNode }) {
+    return React.createElement(React.Fragment, null, children);
+  }
+  function SelectItem({ value, children }: { value: string; children?: React.ReactNode }) {
+    return React.createElement('option', { value }, children);
+  }
+  function SelectValue() { return null; }
+  function Select({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value?: string;
+    onValueChange?: (v: string) => void;
+    children?: React.ReactNode;
+  }) {
+    let triggerId: string | undefined;
+    React.Children.forEach(children, (child) => {
+      if (React.isValidElement(child) && child.type === SelectTrigger) {
+        triggerId = (child.props as { id?: string }).id;
+      }
+    });
+    return React.createElement(
+      'select',
+      {
+        id: triggerId,
+        value: value ?? '',
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
+          onValueChange?.(e.currentTarget.value),
+      },
+      children,
+    );
+  }
+
+  return { ...actual, Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
+});
 
 import { createPatientAction, updatePatientAction } from '../../../../actions/patients';
 import { PatientDrawer } from './patient-drawer';
@@ -125,12 +171,11 @@ describe('PatientDrawer', () => {
       />,
     );
     await user.type(screen.getByLabelText(/nombre/i), 'Ana López');
-    fireEvent.change(screen.getByLabelText(/sucursal/i), { target: { value: LOC_ID } });
+    await user.selectOptions(screen.getByLabelText(/sucursal/i), LOC_ID);
     // Submit without selecting consent type
     await user.click(screen.getByRole('button', { name: /crear paciente/i }));
     await waitFor(() => {
-      const error = screen.queryByText(/requerido|required|invalid/i);
-      expect(error).toBeInTheDocument();
+      expect(screen.queryByText(/requerido|required|invalid/i)).toBeInTheDocument();
     });
     expect(createPatientAction).not.toHaveBeenCalled();
   });

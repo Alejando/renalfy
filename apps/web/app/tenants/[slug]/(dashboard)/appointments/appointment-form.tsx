@@ -5,10 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { LocationResponse, ServiceTypeResponse, UserRole, TemplateField } from '@repo/types';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Input, Label, Textarea, Button } from '@repo/ui';
 import {
   createAppointmentAction,
   fetchClinicalTemplateByServiceTypeAction,
@@ -42,10 +39,10 @@ interface AppointmentFormProps {
 }
 
 const LABEL_CLASS =
-  'block text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+  'block text-[11px] uppercase tracking-wider text-rf-ink-soft font-semibold';
 
 const SELECT_CLASS =
-  'w-full bg-input border border-border rounded-md px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 transition-all appearance-none';
+  'w-full bg-rf-surface border border-rf-line-strong rounded-rf px-4 py-3 text-rf-ink text-sm focus:outline-none focus:ring-2 focus:ring-rf-primary/20 focus:border-rf-primary transition-rf appearance-none';
 
 const REQUIRES_LOCATION_SELECTOR: UserRole[] = ['OWNER', 'ADMIN'];
 
@@ -234,12 +231,12 @@ export function AppointmentForm({
 
         {/* Actions */}
         <div className="pt-4 flex gap-3">
-          <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+          <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
             Cancelar
           </Button>
           <Button
             type="submit"
-            variant="gradient"
+            variant="primary"
             disabled={isSubmitting}
             className="flex-1"
           >

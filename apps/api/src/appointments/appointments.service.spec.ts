@@ -38,6 +38,9 @@ const mockAppointment = {
   clinicalData: null,
   notes: null,
   measurements: [],
+  patient: { id: PATIENT_ID, name: 'Test Patient' },
+  serviceType: null,
+  location: { id: LOCATION_A, name: 'Sucursal A' },
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -526,7 +529,12 @@ describe('AppointmentsService', () => {
       expect(result.measurements).toHaveLength(1);
       expect(prisma.appointment.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          include: { measurements: true },
+          include: {
+            measurements: true,
+            patient: true,
+            serviceType: true,
+            location: true,
+          },
         }),
       );
     });
@@ -631,6 +639,50 @@ describe('AppointmentsService', () => {
           LOCATION_B,
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('enriched response fields', () => {
+    it('should include patientName and locationName in findOne response', async () => {
+      const prisma = makePrisma();
+      const service = new AppointmentsService(prisma);
+
+      const result = await service.findOne(APPOINTMENT_ID, TENANT_ID, null);
+
+      expect(result.patientName).toBe('Test Patient');
+      expect(result.locationName).toBe('Sucursal A');
+      expect(result.serviceTypeName).toBeNull();
+    });
+
+    it('should include serviceTypeName when serviceType is present', async () => {
+      const prisma = makePrisma({
+        appointment: {
+          create: jest.fn(),
+          findFirst: jest.fn().mockResolvedValue({
+            ...mockAppointment,
+            serviceTypeId: SERVICE_TYPE_ID,
+            serviceType: { id: SERVICE_TYPE_ID, name: 'Diálisis' },
+          }),
+          findMany: jest.fn().mockResolvedValue([mockAppointment]),
+          count: jest.fn().mockResolvedValue(1),
+          update: jest.fn(),
+        },
+      });
+      const service = new AppointmentsService(prisma);
+
+      const result = await service.findOne(APPOINTMENT_ID, TENANT_ID, null);
+
+      expect(result.serviceTypeName).toBe('Diálisis');
+    });
+
+    it('should include enriched fields in findAll response', async () => {
+      const prisma = makePrisma();
+      const service = new AppointmentsService(prisma);
+
+      const result = await service.findAll(TENANT_ID, null, {});
+
+      expect(result.data[0]?.patientName).toBe('Test Patient');
+      expect(result.data[0]?.locationName).toBe('Sucursal A');
     });
   });
 });

@@ -2,6 +2,37 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+@source inline("
+  bg-rf-primary bg-rf-primary-soft bg-rf-primary-softer bg-rf-primary-dark bg-rf-primary-darker
+  bg-rf-surface bg-rf-surface-sunk bg-rf-surface-warm bg-rf-paper
+  bg-rf-saffron bg-rf-saffron-soft
+  bg-rf-danger bg-rf-danger-soft
+  bg-rf-success bg-rf-success-soft
+  bg-rf-warning bg-rf-warning-soft
+  bg-rf-info bg-rf-info-soft
+  bg-rf-coral bg-rf-coral-soft
+  bg-rf-ink bg-rf-line bg-rf-line-strong
+  bg-transparent
+  hover:bg-rf-primary-hover hover:bg-rf-surface-sunk hover:bg-rf-primary-darker hover:bg-rf-saffron-hover
+  active:bg-rf-primary-dark active:bg-red-700
+  text-rf-primary text-rf-primary-ink text-rf-on-primary
+  text-rf-saffron text-rf-saffron-ink
+  text-rf-danger text-rf-danger-ink
+  text-rf-success text-rf-success-ink
+  text-rf-warning text-rf-warning-ink
+  text-rf-info text-rf-info-ink
+  text-rf-coral text-rf-coral-ink
+  text-rf-ink text-rf-ink-muted text-rf-ink-soft text-rf-ink-faint
+  hover:text-rf-ink
+  border-rf-primary border-rf-ink border-rf-line border-rf-line-strong
+  hover:border-rf-primary/40
+  focus-visible:ring-rf-primary
+  rounded-rf rounded-rf-sm rounded-rf-md rounded-rf-lg rounded-rf-pill
+  disabled:opacity-40 disabled:cursor-not-allowed
+  shadow-sm
+");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -55,6 +86,57 @@
   --font-headline: "Manrope", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-label: "Inter", sans-serif;
+
+  /* ── RF Design System utilities ─────────────────── */
+  /* Primary */
+  --color-rf-primary:        #0891b2;
+  --color-rf-primary-hover:  #0775a0;
+  --color-rf-primary-soft:   #d4eef5;
+  --color-rf-primary-softer: #e6f4f8;
+  --color-rf-primary-ink:    #053b4e;
+  --color-rf-primary-dark:   #064e6a;
+  --color-rf-primary-darker: #053448;
+  --color-rf-on-primary:     #ffffff;
+  /* Saffron */
+  --color-rf-saffron:        #f59e0b;
+  --color-rf-saffron-soft:   #fdecc8;
+  --color-rf-saffron-ink:    #6b3e02;
+  --color-rf-saffron-hover:  #d97706;
+  /* Ink */
+  --color-rf-ink:            #0c1217;
+  --color-rf-ink-muted:      #404a55;
+  --color-rf-ink-soft:       #6b7783;
+  --color-rf-ink-faint:      #a3acb8;
+  /* Surfaces */
+  --color-rf-surface:        #ffffff;
+  --color-rf-surface-sunk:   #eef0f3;
+  --color-rf-surface-warm:   #e8ecef;
+  --color-rf-paper:          #f4f5f7;
+  /* Lines */
+  --color-rf-line:           #e3e6eb;
+  --color-rf-line-strong:    #cdd3da;
+  /* States */
+  --color-rf-success:        #16a34a;
+  --color-rf-success-soft:   #d4f0dd;
+  --color-rf-success-ink:    #0f5b2b;
+  --color-rf-warning:        #d97706;
+  --color-rf-warning-soft:   #fde7c2;
+  --color-rf-warning-ink:    #6b3604;
+  --color-rf-danger:         #dc2626;
+  --color-rf-danger-soft:    #fbd9d9;
+  --color-rf-danger-ink:     #791818;
+  --color-rf-info:           #2563eb;
+  --color-rf-info-soft:      #d9e3fc;
+  --color-rf-info-ink:       #11296b;
+  --color-rf-coral:          #e26d5a;
+  --color-rf-coral-soft:     #fbe4dd;
+  --color-rf-coral-ink:      #6e2618;
+  /* Radii */
+  --radius-rf:               10px;
+  --radius-rf-sm:            6px;
+  --radius-rf-md:            14px;
+  --radius-rf-lg:            20px;
+  --radius-rf-pill:          999px;
 }
 
 @layer base {
@@ -76,6 +158,49 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* RF Design System — bare --rf-* aliases for inline styles (var(--rf-surface), etc.) */
+  :root {
+    --rf-primary:        var(--color-rf-primary);
+    --rf-primary-hover:  var(--color-rf-primary-hover);
+    --rf-primary-soft:   var(--color-rf-primary-soft);
+    --rf-primary-softer: var(--color-rf-primary-softer);
+    --rf-primary-ink:    var(--color-rf-primary-ink);
+    --rf-primary-dark:   var(--color-rf-primary-dark);
+    --rf-primary-darker: var(--color-rf-primary-darker);
+    --rf-on-primary:     var(--color-rf-on-primary);
+    --rf-saffron:        var(--color-rf-saffron);
+    --rf-saffron-soft:   var(--color-rf-saffron-soft);
+    --rf-saffron-ink:    var(--color-rf-saffron-ink);
+    --rf-saffron-hover:  var(--color-rf-saffron-hover);
+    --rf-ink:            var(--color-rf-ink);
+    --rf-ink-muted:      var(--color-rf-ink-muted);
+    --rf-ink-soft:       var(--color-rf-ink-soft);
+    --rf-ink-faint:      var(--color-rf-ink-faint);
+    --rf-surface:        var(--color-rf-surface);
+    --rf-surface-sunk:   var(--color-rf-surface-sunk);
+    --rf-surface-warm:   var(--color-rf-surface-warm);
+    --rf-paper:          var(--color-rf-paper);
+    --rf-line:           var(--color-rf-line);
+    --rf-line-strong:    var(--color-rf-line-strong);
+    --rf-success:        var(--color-rf-success);
+    --rf-success-soft:   var(--color-rf-success-soft);
+    --rf-success-ink:    var(--color-rf-success-ink);
+    --rf-warning:        var(--color-rf-warning);
+    --rf-warning-soft:   var(--color-rf-warning-soft);
+    --rf-warning-ink:    var(--color-rf-warning-ink);
+    --rf-danger:         var(--color-rf-danger);
+    --rf-danger-soft:    var(--color-rf-danger-soft);
+    --rf-danger-ink:     var(--color-rf-danger-ink);
+    --rf-info:           var(--color-rf-info);
+    --rf-info-soft:      var(--color-rf-info-soft);
+    --rf-info-ink:       var(--color-rf-info-ink);
+    --rf-coral:          var(--color-rf-coral);
+    --rf-coral-soft:     var(--color-rf-coral-soft);
+    --rf-coral-ink:      var(--color-rf-coral-ink);
+    --rf-font-sans:      var(--font-body);
+    --rf-font-mono:      ui-monospace, monospace;
   }
 }
 
@@ -121,39 +246,77 @@
 }
 
 :root {
-  /* ── RF Design System Tokens ─────────────────── */
-  --rf-primary: #0891b2;
-  --rf-primary-hover: #0369a1;
-  --rf-primary-soft: #f0f9fc;
-  --rf-primary-softer: #f5fbfd;
-  --rf-primary-ink: #164e63;
-  --rf-primary-dark: #083f52;
-  --rf-primary-darker: #062e3f;
-  --rf-on-primary: #ffffff;
-  --rf-saffron: #f59e0b;
-  --rf-saffron-soft: #fef3c7;
+  /* ── RF Design System Tokens v2 ──────────────── */
+  /* Surfaces */
+  --rf-paper:         #f4f5f7;
+  --rf-surface:       #ffffff;
+  --rf-surface-sunk:  #eef0f3;
+  --rf-surface-warm:  #e8ecef;
+
+  /* Ink */
+  --rf-ink:           #0c1217;
+  --rf-ink-muted:     #404a55;
+  --rf-ink-soft:      #6b7783;
+  --rf-ink-faint:     #a3acb8;
+
+  /* Lines */
+  --rf-line:          #e3e6eb;
+  --rf-line-strong:   #cdd3da;
+
+  /* Primary — clinical teal */
+  --rf-primary:        #0891b2;
+  --rf-primary-hover:  #0775a0;
+  --rf-primary-soft:   #d4eef5;
+  --rf-primary-softer: #e6f4f8;
+  --rf-primary-ink:    #053b4e;
+  --rf-on-primary:     #ffffff;
+  --rf-primary-dark:   #064e6a;
+  --rf-primary-darker: #053448;
+
+  /* Saffron accent */
+  --rf-saffron:      #f59e0b;
+  --rf-saffron-soft: #fdecc8;
+  --rf-saffron-ink:  #6b3e02;
   --rf-saffron-hover: #d97706;
-  --rf-ink: #1f2937;
-  --rf-ink-muted: #6b7280;
-  --rf-ink-soft: #9ca3af;
-  --rf-ink-faint: #d1d5db;
-  --rf-paper: #ffffff;
-  --rf-surface: #f9fafb;
-  --rf-surface-sunk: #f3f4f6;
-  --rf-line: #e5e7eb;
-  --rf-line-strong: #d1d5db;
-  --rf-success: #10b981;
-  --rf-warning: #f59e0b;
-  --rf-danger: #ef4444;
-  --rf-info: #3b82f6;
-  --rf-coral: #f97316;
-  --rf-radius-sm: 0.375rem;
-  --rf-radius: 0.625rem;
-  --rf-radius-md: 0.875rem;
-  --rf-radius-lg: 1.25rem;
+
+  /* States */
+  --rf-success:      #16a34a;
+  --rf-success-soft: #d4f0dd;
+  --rf-success-ink:  #0f5b2b;
+
+  --rf-warning:      #d97706;
+  --rf-warning-soft: #fde7c2;
+  --rf-warning-ink:  #6b3604;
+
+  --rf-danger:       #dc2626;
+  --rf-danger-soft:  #fbd9d9;
+  --rf-danger-ink:   #791818;
+
+  --rf-info:         #2563eb;
+  --rf-info-soft:    #d9e3fc;
+  --rf-info-ink:     #11296b;
+
+  --rf-coral:        #e26d5a;
+  --rf-coral-soft:   #fbe4dd;
+  --rf-coral-ink:    #6e2618;
+
+  /* Radii */
+  --rf-radius-sm:   6px;
+  --rf-radius:      10px;
+  --rf-radius-md:   14px;
+  --rf-radius-lg:   20px;
   --rf-radius-pill: 999px;
+
+  /* Shadows */
+  --rf-shadow-xs: 0 1px 0 rgba(12,18,23,.03), 0 1px 2px rgba(12,18,23,.04);
+  --rf-shadow-sm: 0 2px 4px rgba(12,18,23,.04), 0 1px 2px rgba(12,18,23,.03);
+  --rf-shadow-md: 0 8px 24px -8px rgba(12,18,23,.12), 0 2px 6px rgba(12,18,23,.04);
+  --rf-shadow-lg: 0 24px 60px -20px rgba(12,18,23,.22), 0 4px 12px rgba(12,18,23,.05);
+  --rf-shadow-ring: 0 0 0 4px rgba(8,145,178,.16);
+
+  /* Fonts */
   --rf-font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --rf-font-mono: "Geist Mono", "Courier New", monospace;
+  --rf-font-mono: "Geist Mono", "SF Mono", ui-monospace, monospace;
   /* ─────────────────────────────────────────────── */
 
   --background: oklch(1 0 0);
@@ -190,40 +353,11 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* ── RF Tailwind utilities ───────────────────────────────────── */
-@theme {
-  --color-rf-primary:        var(--rf-primary);
-  --color-rf-primary-hover:  var(--rf-primary-hover);
-  --color-rf-primary-soft:   var(--rf-primary-soft);
-  --color-rf-primary-softer: var(--rf-primary-softer);
-  --color-rf-primary-ink:    var(--rf-primary-ink);
-  --color-rf-primary-dark:   var(--rf-primary-dark);
-  --color-rf-primary-darker: var(--rf-primary-darker);
-  --color-rf-on-primary:     var(--rf-on-primary);
-  --color-rf-saffron:        var(--rf-saffron);
-  --color-rf-saffron-soft:   var(--rf-saffron-soft);
-  --color-rf-ink:            var(--rf-ink);
-  --color-rf-ink-muted:      var(--rf-ink-muted);
-  --color-rf-ink-soft:       var(--rf-ink-soft);
-  --color-rf-ink-faint:      var(--rf-ink-faint);
-  --color-rf-surface:        var(--rf-surface);
-  --color-rf-surface-sunk:   var(--rf-surface-sunk);
-  --color-rf-paper:          var(--rf-paper);
-  --color-rf-line:           var(--rf-line);
-  --color-rf-line-strong:    var(--rf-line-strong);
-  --color-rf-success:        var(--rf-success);
-  --color-rf-warning:        var(--rf-warning);
-  --color-rf-danger:         var(--rf-danger);
-  --color-rf-info:           var(--rf-info);
-  --color-rf-coral:          var(--rf-coral);
-  --radius-rf:               var(--rf-radius);
-  --radius-rf-sm:            var(--rf-radius-sm);
-  --radius-rf-md:            var(--rf-radius-md);
-  --radius-rf-lg:            var(--rf-radius-lg);
-  --radius-rf-pill:          var(--rf-radius-pill);
-  --font-headline:           var(--rf-font-sans);
-  --font-mono:               var(--rf-font-mono);
+/* ── RF custom utilities ─────────────────────────────────────── */
+@utility transition-rf {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 
 .dark {
   --background: oklch(0.145 0 0);

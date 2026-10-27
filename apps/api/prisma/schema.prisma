@@ -102,9 +102,10 @@ model Location {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  users    User[]
-  patients Patient[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  users        User[]
+  patients     Patient[]
+  appointments Appointment[]
   purchaseOrders PurchaseOrder[]
 }
 
@@ -128,6 +129,7 @@ model Patient {
 
   location        Location         @relation(fields: [locationId], references: [id])
   patientConsents PatientConsent[]
+  appointments    Appointment[]
 }
 
 enum PatientStatus {
@@ -145,6 +147,8 @@ model ServiceType {
   status      ServiceTypeStatus @default(ACTIVE)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  appointments Appointment[]
 }
 
 enum ServiceTypeStatus {
@@ -206,6 +210,9 @@ model Appointment {
   updatedAt     DateTime          @updatedAt
 
   receipt      Receipt?      @relation(fields: [receiptId], references: [id])
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  serviceType  ServiceType?  @relation(fields: [serviceTypeId], references: [id])
+  location     Location      @relation(fields: [locationId], references: [id])
   measurements Measurement[]
 }
 

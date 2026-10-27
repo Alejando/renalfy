@@ -12,12 +12,14 @@ vi.mock('next/link', () => ({
     href,
     children,
     className,
+    'aria-label': ariaLabel,
   }: {
     href: string;
     children: React.ReactNode;
     className?: string;
+    'aria-label'?: string;
   }) => (
-    <a href={href} className={className}>
+    <a href={href} className={className} aria-label={ariaLabel}>
       {children}
     </a>
   ),
@@ -51,6 +53,9 @@ function makeAppointment(
     clinicalData: null,
     notes: null,
     measurements: [],
+    patientName: 'Juan Pérez',
+    serviceTypeName: 'Diálisis',
+    locationName: 'Sucursal Centro',
     createdAt: new Date('2026-03-22'),
     updatedAt: new Date('2026-03-22'),
     ...overrides,
@@ -157,7 +162,7 @@ describe('AppointmentsPageClient', () => {
     );
   });
 
-  it('does not show pagination when total <= limit', () => {
+  it('shows pagination disabled when total <= limit', () => {
     render(
       <AppointmentsPageClient
         appointments={makeAppointments([makeAppointment()])}
@@ -168,7 +173,8 @@ describe('AppointmentsPageClient', () => {
         patients={[]}
       />,
     );
-    expect(screen.queryByRole('button', { name: /anterior/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /anterior/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /siguiente/i })).toBeDisabled();
   });
 
   it('shows pagination when total > limit', () => {

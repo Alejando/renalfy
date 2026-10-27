@@ -5,6 +5,7 @@ import type { ServiceTypeResponse } from '@repo/types';
 vi.mock('../../../../../../lib/api', () => ({
   apiFetch: vi.fn(),
   getPublicTenant: vi.fn(),
+  isNextInternalError: vi.fn(() => false),
 }));
 
 vi.mock('./service-types-page-client', () => ({

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import type { PatientResponse } from '@repo/types';
+import type { PatientResponse, PaginatedAppointmentsResponse } from '@repo/types';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({ push: vi.fn(), refresh: vi.fn() })),
@@ -59,6 +59,13 @@ const mockPatient: PatientResponse = {
   updatedAt: new Date('2026-01-01'),
 };
 
+const mockAppointments: PaginatedAppointmentsResponse = {
+  data: [],
+  total: 0,
+  page: 1,
+  limit: 50,
+};
+
 describe('PatientDetailClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +81,7 @@ describe('PatientDetailClient', () => {
 
   it('shows all patient fields', () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     expect(screen.getAllByText('Juan Pérez').length).toBeGreaterThan(0);
     expect(screen.getByText('555-0001')).toBeInTheDocument();
@@ -85,7 +92,7 @@ describe('PatientDetailClient', () => {
 
   it('shows consent data when consent is present', () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     expect(screen.getByText(/aviso de privacidad/i)).toBeInTheDocument();
     expect(screen.getByText(/1\.0/)).toBeInTheDocument();
@@ -96,6 +103,7 @@ describe('PatientDetailClient', () => {
     render(
       <PatientDetailClient
         patient={patientNoConsent}
+        appointments={mockAppointments}
         userRole="OWNER"
         userLocationId={null}
       />,
@@ -105,7 +113,7 @@ describe('PatientDetailClient', () => {
 
   it('Edit button opens the patient drawer', () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     expect(screen.queryByTestId('patient-drawer')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /editar/i }));
@@ -114,14 +122,14 @@ describe('PatientDetailClient', () => {
 
   it('shows "Dar de baja" button for OWNER on ACTIVE patient', () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     expect(screen.getByRole('button', { name: /dar de baja/i })).toBeInTheDocument();
   });
 
   it('does NOT show "Dar de baja" button for STAFF', () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="STAFF" userLocationId="loc-1" />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="STAFF" userLocationId="loc-1" />,
     );
     expect(screen.queryByRole('button', { name: /dar de baja/i })).not.toBeInTheDocument();
   });
@@ -131,6 +139,7 @@ describe('PatientDetailClient', () => {
     render(
       <PatientDetailClient
         patient={deletedPatient}
+        appointments={mockAppointments}
         userRole="OWNER"
         userLocationId={null}
       />,
@@ -140,7 +149,7 @@ describe('PatientDetailClient', () => {
 
   it('clicking "Dar de baja" opens AlertDialog without executing action', async () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
     await waitFor(() => {
@@ -151,7 +160,7 @@ describe('PatientDetailClient', () => {
 
   it('Cancel button in AlertDialog closes dialog without executing action', async () => {
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
     await waitFor(() => {
@@ -167,7 +176,7 @@ describe('PatientDetailClient', () => {
   it('confirming baja executes deletePatientAction and navigates to /patients', async () => {
     vi.mocked(deletePatientAction).mockResolvedValue(null);
     render(
-      <PatientDetailClient patient={mockPatient} userRole="OWNER" userLocationId={null} />,
+      <PatientDetailClient patient={mockPatient} appointments={mockAppointments} userRole="OWNER" userLocationId={null} />,
     );
     fireEvent.click(screen.getByRole('button', { name: /dar de baja/i }));
     await waitFor(() => {

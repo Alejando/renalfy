@@ -4,8 +4,8 @@ interface AppointmentMeasurementListProps {
   measurements: MeasurementResponse[];
 }
 
-const SECTION_LABEL =
-  'text-[10px] font-label uppercase tracking-widest text-muted-foreground font-semibold';
+const LABEL_CLASS =
+  'text-[10px] font-label uppercase tracking-widest text-rf-ink-soft font-semibold';
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat('es-MX', {
@@ -22,33 +22,47 @@ export function AppointmentMeasurementList({
 }: AppointmentMeasurementListProps) {
   if (measurements.length === 0) {
     return (
-      <div className="rounded-xl border p-6">
-        <p className={`${SECTION_LABEL} mb-3`}>Mediciones</p>
-        <p className="text-muted-foreground text-sm">Sin mediciones registradas.</p>
+      <div
+        className="rounded-rf-md p-6"
+        style={{
+          background: 'var(--rf-surface)',
+          border: '1px solid var(--rf-line)',
+        }}
+      >
+        <p className={`${LABEL_CLASS} mb-2`}>Mediciones</p>
+        <p className="text-rf-ink-soft text-sm">Sin mediciones registradas.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border p-6 space-y-4">
-      <p className={SECTION_LABEL}>Mediciones ({measurements.length})</p>
+    <div
+      className="rounded-rf-md p-6 space-y-4"
+      style={{
+        background: 'var(--rf-surface)',
+        border: '1px solid var(--rf-line)',
+      }}
+    >
+      <p className={LABEL_CLASS}>Mediciones ({measurements.length})</p>
       <div className="space-y-4">
         {measurements.map((measurement) => (
           <div
             key={measurement.id}
-            className="border rounded-lg p-4 space-y-3 bg-muted/30"
+            className="rounded-rf p-4 space-y-3"
+            style={{
+              background: 'var(--rf-surface-sunk)',
+              border: '1px solid var(--rf-line)',
+            }}
           >
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-foreground">
-                {formatDateTime(measurement.recordedAt)}
-              </p>
-            </div>
+            <p className="text-sm font-semibold text-rf-ink">
+              {formatDateTime(measurement.recordedAt)}
+            </p>
             {Object.keys(measurement.data).length > 0 && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {Object.entries(measurement.data).map(([key, value]) => (
                   <div key={key} className="space-y-1">
-                    <p className={SECTION_LABEL}>{key}</p>
-                    <p className="text-sm text-foreground font-medium">
+                    <p className={LABEL_CLASS}>{key}</p>
+                    <p className="text-sm text-rf-ink font-medium">
                       {String(value ?? '—')}
                     </p>
                   </div>
@@ -57,8 +71,8 @@ export function AppointmentMeasurementList({
             )}
             {measurement.notes && (
               <div className="space-y-1">
-                <p className={SECTION_LABEL}>Notas</p>
-                <p className="text-sm text-muted-foreground">{measurement.notes}</p>
+                <p className={LABEL_CLASS}>Notas</p>
+                <p className="text-sm text-rf-ink-soft">{measurement.notes}</p>
               </div>
             )}
           </div>
